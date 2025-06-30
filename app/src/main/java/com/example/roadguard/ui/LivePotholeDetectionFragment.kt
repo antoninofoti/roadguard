@@ -81,6 +81,9 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
     private var emptyDetectionFrames = 0
     private val emptyDetectionThreshold = 10 // 10 frame senza detection
 
+    private lateinit var shakeInfoTextView: android.widget.TextView
+    private var isSensorRegistered = false
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
@@ -110,7 +113,7 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
             setPadding(40, 10, 40, 10)
             background = ContextCompat.getDrawable(context, R.drawable.button_back_rounded)
             setOnClickListener {
-                requireActivity().onBackPressedDispatcher.onBackPressed()
+                parentFragmentManager.popBackStack()
             }
             val params = android.widget.FrameLayout.LayoutParams(
                 android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -123,6 +126,41 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
             elevation = 10f
         }
         (view as android.widget.FrameLayout).addView(btnBack)
+
+        // Diagnostic TextView for shake info
+        shakeInfoTextView = android.widget.TextView(requireContext()).apply {
+            text = "Shake: --"
+            setTextColor(ContextCompat.getColor(context, android.R.color.holo_red_dark))
+            textSize = 16f
+            setPadding(32, 180, 0, 0)
+            elevation = 10f
+        }
+        (view as android.widget.FrameLayout).addView(shakeInfoTextView)
+
+        // Debug button to simulate shake
+        val btnSimulateShake = Button(requireContext()).apply {
+            text = "Simula Scossa"
+            setBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_orange_light))
+            setTextColor(ContextCompat.getColor(context, android.R.color.white))
+            textSize = 16f
+            setPadding(40, 10, 40, 10)
+            val params = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.topMargin = 260
+            params.leftMargin = 32
+            layoutParams = params
+            setOnClickListener {
+                Log.d("LivePotholeDetection", "Simulated shake event via button")
+                Toast.makeText(requireContext(), "Simulazione scossa!", Toast.LENGTH_SHORT).show()
+                val fakeDelta = 10f
+                shakeInfoTextView.text = "Shake: Δ=%.2f t=%d".format(fakeDelta, System.currentTimeMillis())
+                handleShake(fakeDelta)
+            }
+            elevation = 10f
+        }
+        (view as android.widget.FrameLayout).addView(btnSimulateShake)
 
         // Gestione back hardware/software
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
@@ -138,8 +176,17 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
         super.onViewCreated(view, savedInstanceState)
         sensorManager = requireContext().getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
+        if (accelerometer == null) {
+            Log.e("LivePotholeDetection", "Accelerometro non disponibile!")
+            Toast.makeText(requireContext(), "Accelerometro non disponibile!", Toast.LENGTH_LONG).show()
+        } else {
+            Log.d("LivePotholeDetection", "Accelerometro trovato, registro listener")
+            val registered = sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI)
+            isSensorRegistered = registered
+            Log.d("LivePotholeDetection", "Sensor registered: $registered")
+            if (!registered) {
+                Toast.makeText(requireContext(), "Errore registrazione accelerometro", Toast.LENGTH_LONG).show()
+            }
         }
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
         // Unica richiesta permessi atomica
@@ -153,6 +200,29 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
             progressBar.visibility = View.GONE
             startCameraAndLocation()
         }
+        // --- TEST BUTTON: forza report ---
+        val btnTest = Button(requireContext()).apply {
+            text = "Test Report"
+            setBackgroundColor(ContextCompat.getColor(context, android.R.color.holo_green_light))
+            setTextColor(ContextCompat.getColor(context, android.R.color.white))
+            textSize = 16f
+            setPadding(40, 10, 40, 10)
+            val params = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.topMargin = 200
+            params.leftMargin = 32
+            layoutParams = params
+            setOnClickListener {
+                Log.d("LivePotholeDetection", "TEST BUTTON: tryCreateReport called")
+                tryCreateReport(Bitmap.createBitmap(10,10,Bitmap.Config.ARGB_8888), "test", 42.0f)
+            }
+            bringToFront()
+            elevation = 10f
+        }
+        (view as android.widget.FrameLayout).addView(btnTest)
+        // --- END TEST BUTTON ---
     }
 
     private fun allPermissionsGranted(): Boolean {
@@ -249,6 +319,9 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
         lastAnalysisTime = now
         val bitmap = imageProxyToBitmapSafe(image)
         if (bitmap != null) {
+            Log.d("LivePotholeDetection", "Bitmap size: {bitmap.width}x${bitmap.height}, config: ${bitmap.config}")
+            // DEBUG: detection finta per test pipeline
+            // val detections = listOf(PotholeDetectionHelper.Detection(100, 100, 200, 200, 0.9f))
             val detections = potholeDetectionHelper.detectPotholes(bitmap)
             Log.d("LivePotholeDetection", "Detection count: ${detections.size}")
             detections.forEachIndexed { idx, det ->
@@ -261,6 +334,7 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
                 if (detections.isNotEmpty()) {
                     emptyDetectionFrames = 0
                     overlayView.showNoDetectionPlaceholder(false)
+                    Toast.makeText(requireContext(), "Buca rilevata!", Toast.LENGTH_SHORT).show()
                     tryCreateReport(bitmap, "pothole", 1.0f)
                 } else {
                     emptyDetectionFrames++
@@ -307,11 +381,78 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
         }
     }
 
+    // Accelerometro: crea report se scossa forte
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            val acceleration = Math.sqrt((x * x + y * y + z * z).toDouble()).toFloat()
+            val delta = Math.abs(acceleration - lastAcceleration)
+            Log.d("LivePotholeDetection", "onSensorChanged: x=$x y=$y z=$z acc=$acceleration delta=$delta")
+            lastAcceleration = acceleration
+            requireActivity().runOnUiThread {
+                shakeInfoTextView.text = "Shake: Δ=%.2f t=%d".format(delta, System.currentTimeMillis())
+            }
+            handleShake(delta)
+        }
+    }
+
+    // Gestisce la logica di report per scossa forte (usata sia da onSensorChanged che dal bottone di test)
+    private fun handleShake(delta: Float) {
+        if (delta > 3) { // Soglia abbassata per test
+            val now = System.currentTimeMillis()
+            if (now - lastShake > 2000) {
+                lastShake = now
+                requireActivity().runOnUiThread {
+                    Toast.makeText(requireContext(), "Scossa forte rilevata!", Toast.LENGTH_SHORT).show()
+                }
+                // Crea report accelerometro
+                tryCreateReport(Bitmap.createBitmap(10,10,Bitmap.Config.ARGB_8888), "accelerometer", delta)
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    override fun onResume() {
+        super.onResume()
+        if (!isSensorRegistered && accelerometer != null) {
+            val registered = sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI)
+            isSensorRegistered = registered
+            Log.d("LivePotholeDetection", "onResume: Sensor registered: $registered")
+            if (!registered) {
+                Toast.makeText(requireContext(), "Errore registrazione accelerometro in onResume", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            Log.d("LivePotholeDetection", "onResume: Sensor already registered or not available")
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(this)
+        isSensorRegistered = false
+        Log.d("LivePotholeDetection", "onPause: Sensor unregistered")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+        sensorManager.unregisterListener(this)
+        isSensorRegistered = false
+        Log.d("LivePotholeDetection", "onDestroy: Sensor unregistered and camera executor shutdown")
+    }
+
     // Chiamata asincrona per creare un report
     private fun tryCreateReport(bitmap: Bitmap, type: String, severity: Float) {
         val now = System.currentTimeMillis()
-        if (now - lastReportTime < reportIntervalMs) return
+        if (now - lastReportTime < reportIntervalMs) {
+            Log.d("LivePotholeDetection", "tryCreateReport: Skipped, too soon. type=$type severity=$severity")
+            return
+        }
         lastReportTime = now
+        Log.d("LivePotholeDetection", "tryCreateReport: Creating report. type=$type severity=$severity")
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val file = File(requireContext().cacheDir, "${UUID.randomUUID()}.jpg")
@@ -323,12 +464,12 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
                 val location = getCurrentLocationGeoPoint()
                 reportRepository.addReport(uri, location ?: GeoPoint(0.0, 0.0), severity)
                 CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(requireContext(), "Report inviato", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Report inviato ($type, sev=%.2f)".format(severity), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 Log.e("LivePotholeDetection", "Errore invio report", e)
                 CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(requireContext(), "Errore invio report", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Errore invio report ($type)", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -341,40 +482,5 @@ class LivePotholeDetectionFragment : Fragment(), SensorEventListener {
             return GeoPoint(it.latitude, it.longitude)
         }
         return null
-    }
-
-    // Accelerometro: crea report se scossa forte
-    override fun onSensorChanged(event: SensorEvent?) {
-        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
-            val x = event.values[0]
-            val y = event.values[1]
-            val z = event.values[2]
-            val acceleration = Math.sqrt((x * x + y * y + z * z).toDouble()).toFloat()
-            val delta = Math.abs(acceleration - lastAcceleration)
-            lastAcceleration = acceleration
-            if (delta > 10) {
-                val now = System.currentTimeMillis()
-                if (now - lastShake > 2000) {
-                    lastShake = now
-                    requireActivity().runOnUiThread {
-                        Toast.makeText(requireContext(), "Scossa forte rilevata!", Toast.LENGTH_SHORT).show()
-                    }
-                    // Crea report accelerometro
-                    tryCreateReport(Bitmap.createBitmap(10,10,Bitmap.Config.ARGB_8888), "accelerometer", delta)
-                }
-            }
-        }
-    }
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-
-    override fun onPause() {
-        super.onPause()
-        sensorManager.unregisterListener(this)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
-        sensorManager.unregisterListener(this)
     }
 }

@@ -65,7 +65,7 @@ class PotholeDetectionHelper(context: Context) {
         var tensorImage = TensorImage.fromBitmap(processedBitmap)
         tensorImage = imageProcessor.process(tensorImage)
 
-        // YOLOv8 output: [1, 6, 8400] (6: x, y, w, h, conf, class; 8400: boxes)
+        // CORRECT: YOLOv8 output: [1, 6, 8400] (6: x, y, w, h, conf, class; 8400: boxes)
         val outputBuffer = Array(1) { Array(6) { FloatArray(8400) } }
 
         interpreter?.run(tensorImage.buffer, outputBuffer)
