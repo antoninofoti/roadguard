@@ -1,5 +1,6 @@
 package com.example.roadguard.view
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,9 +34,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import java.util.Locale
+import androidx.navigation.NavController
 
 @Composable
-fun MainScreen(viewModel: MainViewModel) {
+fun MainScreen(viewModel: MainViewModel, navController: NavController) {
     val context = LocalContext.current
     val potholeDetectionHelper = PotholeDetectionHelper(context)
 
@@ -121,10 +124,12 @@ fun MainScreen(viewModel: MainViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { launcher.launch("image/*") }) {
-            Text("Select Image")
+        // Button for live detection
+        Button(onClick = {
+            context.startActivity(Intent(context, com.example.roadguard.ui.LivePotholeDetectionActivity::class.java))
+        }) {
+            Text("Live Pothole Detection")
         }
-
         Spacer(modifier = Modifier.height(16.dp))
 
         if (viewModel.detections.value.isNotEmpty()) {
@@ -143,6 +148,20 @@ fun MainScreen(viewModel: MainViewModel) {
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Remove the old image picker button and the unused intent-based detection button
+        // (Commented out for reference)
+        // Button(onClick = { launcher.launch("image/*") }) {
+        //     Text("Select Image")
+        // }
+        // Spacer(modifier = Modifier.height(16.dp))
+        // Button(onClick = {
+        //     context.startActivity(Intent(context, com.example.roadguard.PotholeDetectionActivity::class.java))
+        // }) {
+        //     Text("Open Pothole Detection")
+        // }
     }
 }
 

@@ -18,8 +18,9 @@ import java.util.*
 
 @Composable
 fun ReportItem(report: Report) {
-    val formattedDate = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
-        .format(Date(report.timestamp))
+    val formattedDate = report.timestamp?.let {
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(it)
+    } ?: ""
 
     Card(
         modifier = Modifier
@@ -43,7 +44,9 @@ fun ReportItem(report: Report) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Date: $formattedDate", style = MaterialTheme.typography.bodyMedium)
                 Text("Severity: ${report.severity}", style = MaterialTheme.typography.bodyMedium)
-                Text("Location: (${String.format("%.4f", report.location.latitude)}, ${String.format("%.4f", report.location.longitude)})", style = MaterialTheme.typography.bodyMedium)
+                report.location?.let {
+                    Text("Location: (${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)})", style = MaterialTheme.typography.bodyMedium)
+                }
             }
         }
     }

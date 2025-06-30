@@ -41,11 +41,13 @@ fun ReportsMapScreen(reportsViewModel: ReportsViewModel = viewModel()) {
                 cameraPositionState = cameraPositionState
             ) {
                 reports.forEach { report ->
-                    Marker(
-                        state = MarkerState(position = LatLng(report.location.latitude, report.location.longitude)),
-                        title = "Report",
-                        snippet = "Severity: ${report.severity}"
-                    )
+                    report.location?.let {
+                        Marker(
+                            state = MarkerState(position = LatLng(it.latitude, it.longitude)),
+                            title = "Report",
+                            snippet = "Severity: ${report.severity}"
+                        )
+                    }
                 }
             }
         }

@@ -21,7 +21,7 @@ class MainViewModel : ViewModel() {
     val detections = mutableStateOf<List<Detection>>(emptyList())
 
     private val reportRepository = ReportRepository()
-    private lateinit var sensorHelper: SensorHelper
+    private var sensorHelper: SensorHelper? = null
 
     val isSavingReport = mutableStateOf(false)
     val saveReportError = mutableStateOf<String?>(null)
@@ -31,24 +31,20 @@ class MainViewModel : ViewModel() {
     val locationError = mutableStateOf<String?>(null)
 
     val currentSeverity: StateFlow<Float>?
-        get() = if (this::sensorHelper.isInitialized) sensorHelper.severity else null
+        get() = sensorHelper?.severity
 
     fun initializeSensorHelper(context: Context) {
-        if (!this::sensorHelper.isInitialized) {
+        if (sensorHelper == null) {
             sensorHelper = SensorHelper(context)
         }
     }
 
     fun startSensorListening() {
-        if (this::sensorHelper.isInitialized) {
-            sensorHelper.startListening()
-        }
+        sensorHelper?.startListening()
     }
 
     fun stopSensorListening() {
-        if (this::sensorHelper.isInitialized) {
-            sensorHelper.stopListening()
-        }
+        sensorHelper?.stopListening()
     }
 
     fun addReport(bitmap: Bitmap, context: Context) {
@@ -64,13 +60,14 @@ class MainViewModel : ViewModel() {
                 return@launch
             }
 
-            if (!this::sensorHelper.isInitialized) {
+            val localSensorHelper = sensorHelper
+            if (localSensorHelper == null) {
                 saveReportError.value = "Sensor helper not initialized."
                 isSavingReport.value = false
                 return@launch
             }
 
-            val severity = sensorHelper.getSeverity()
+            val severity = localSensorHelper.getSeverity()
 
             locationHelper.getCurrentLocation()
                 .onSuccess {

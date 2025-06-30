@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 import java.util.UUID
 
 class ReportRepository {
@@ -35,7 +36,7 @@ class ReportRepository {
                 userId = userId,
                 imageUrl = imageUrl,
                 location = location,
-                timestamp = System.currentTimeMillis(),
+                timestamp = Date(),
                 severity = severity
             )
 

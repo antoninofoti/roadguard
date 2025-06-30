@@ -7,7 +7,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.roadguard.model.User
 import com.google.firebase.auth.FirebaseAuth
@@ -16,7 +15,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 @Composable
 fun SignUpScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -65,9 +64,7 @@ fun SignUpScreen(
                     if (password == confirmPassword) {
                         authViewModel.signUp(email, password,
                             onSuccess = {
-                                navController.navigate("home") {
-                                    popUpTo("auth") { inclusive = true }
-                                }
+                                // Non navigare qui: sarà MainActivity a portare l'utente su 'main'
                             },
                             onError = { errorMessage = it }
                         )

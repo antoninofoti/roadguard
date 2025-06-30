@@ -21,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.roadguard.ui.LivePotholeDetectionFragmentComposable
 import com.example.roadguard.view.MainScreen
 import com.example.roadguard.view.MainViewModel
 import com.example.roadguard.view.ReportsMapScreen
@@ -74,9 +75,10 @@ fun AppNavigation() {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { MainScreen(viewModel = mainViewModel) }
+            composable(Screen.Home.route) { MainScreen(viewModel = mainViewModel, navController = navController) }
             composable(Screen.Reports.route) { ReportsScreen(reportsViewModel = reportsViewModel) }
             composable(Screen.Map.route) { ReportsMapScreen(reportsViewModel = reportsViewModel) }
+            // Remove live detection destination (now handled by activity)
         }
     }
 }

@@ -6,18 +6,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
 @Composable
-fun AuthScreen() {
+fun AuthScreen(authViewModel: AuthViewModel) {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
-            LoginScreen(navController = navController)
+            LoginScreen(navController = navController, authViewModel = authViewModel)
         }
         composable("signup") {
-            SignUpScreen(navController = navController)
-        }
-        composable("home") {
-            // TODO: Replace with actual home screen
+            SignUpScreen(navController = navController, authViewModel = authViewModel)
         }
     }
 }

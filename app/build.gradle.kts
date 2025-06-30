@@ -5,7 +5,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.google.services)
 }
 
 val localProperties = Properties()
@@ -16,12 +15,12 @@ if (localPropertiesFile.exists()) {
 
 android {
     namespace = "com.example.roadguard"
-    compileSdk = 36
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.roadguard"
-        minSdk = 24
-        targetSdk = 36
+        minSdk = 26
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -30,6 +29,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+            isMinifyEnabled = false
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -50,6 +54,16 @@ android {
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "**/libc++_shared.so"
+            pickFirsts += "**/lib*//*/*.so"
+        }
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -82,6 +96,15 @@ dependencies {
     implementation(libs.google.maps.compose)
     implementation(libs.google.play.services.location)
 
+    // Google Play Services Base & Auth
+    implementation("com.google.android.gms:play-services-base:18.5.0")
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+    implementation("com.google.android.gms:play-services-tasks:18.2.0")
+
+    // Additional Google Play Services components
+    implementation("com.google.android.gms:play-services-basement:18.4.0")
+    implementation("com.google.android.gms:play-services-safetynet:18.1.0")
+
     // CameraX
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
@@ -91,29 +114,18 @@ dependencies {
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
 
+    // OpenCV (local module)
+    implementation(project(":sdk"))
+
     // TensorFlow Lite
-    implementation(libs.tensorflow.lite)
-    implementation(libs.tensorflow.lite.support)
-    implementation(libs.tensorflow.lite.gpu)
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
 
-    // OpenCV
-    implementation(libs.opencv)
+    // Guava (for ListenableFuture)
+    implementation("com.google.guava:guava:32.1.3-android")
 
-    // Retrofit & OkHttp
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.gson)
-    implementation(libs.okhttp)
-
-    // Coroutines
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.play.services)
-
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    implementation("androidx.appcompat:appcompat:1.6.1")
 }
+
+apply(plugin = "com.google.gms.google-services")

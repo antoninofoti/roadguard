@@ -51,7 +51,7 @@ firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-fires
 firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx" }
 firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
 
-opencv = { group = "com.github.quickbirdstudios", name = "opencv-android", version.ref = "opencv" }
+opencv = { group = "org.opencv", name = "opencv-android", version.ref = "opencv" }
 
 google-play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 google-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }

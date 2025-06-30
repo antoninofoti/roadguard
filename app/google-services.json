@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "386437396459-69j4ktbmn7c7lo9b9h30soptgaj1rmun.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.roadguard",
+            "certificate_hash": "0033585b8c75444d6461c95661a0d70ddb36d9d4"
+          }
+        },
+        {
           "client_id": "386437396459-hdced4mii7fecce2nu4bdgcvum7fpnbh.apps.googleusercontent.com",
           "client_type": 3
         }

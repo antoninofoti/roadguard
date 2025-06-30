@@ -90,12 +90,7 @@
 
 apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
-try {
-    apply plugin: 'kotlin-android'
-    println "Configure OpenCV with Kotlin"
-} catch (Exception e) {
-    println "Configure OpenCV without Kotlin"
-}
+// Removed Kotlin plugin for OpenCV SDK to avoid compilation issues
 
 def openCVersionName = "4.11.0"
 def openCVersionCode = ((4 * 100 + 11) * 100 + 0) * 10 + 0
@@ -127,8 +122,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     buildTypes {

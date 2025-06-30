@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
@@ -16,6 +17,9 @@ import com.example.roadguard.auth.AuthViewModel
 import com.example.roadguard.navigation.AppNavigation
 import com.example.roadguard.tflite.PotholeDetectionHelper
 import com.example.roadguard.ui.theme.RoadGuardTheme
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 class MainActivity : ComponentActivity() {
 
@@ -41,11 +45,29 @@ class MainActivity : ComponentActivity() {
         val authViewModel: AuthViewModel by viewModels()
         setContent {
             RoadGuardTheme {
+                val navController = rememberNavController()
                 val isLoggedIn by authViewModel.isLoggedIn.collectAsState()
-                if (isLoggedIn) {
-                    AppNavigation()
-                } else {
-                    AuthScreen()
+
+                LaunchedEffect(isLoggedIn) {
+                    if (isLoggedIn) {
+                        navController.navigate("main") {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    } else {
+                        navController.navigate("auth") {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                }
+
+                NavHost(
+                    navController = navController,
+                    startDestination = if (isLoggedIn) "main" else "auth"
+                ) {
+                    composable("auth") { AuthScreen(authViewModel = authViewModel) }
+                    composable("main") { AppNavigation() }
                 }
             }
         }

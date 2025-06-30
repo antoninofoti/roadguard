@@ -7,13 +7,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 
 @Composable
 fun LoginScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -51,9 +50,7 @@ fun LoginScreen(
                 if (email.isNotEmpty() && password.isNotEmpty()) {
                     authViewModel.login(email, password,
                         onSuccess = {
-                            navController.navigate("home") {
-                                popUpTo("login") { inclusive = true }
-                            }
+                            // Non navigare qui: sarà MainActivity a portare l'utente su 'main'
                         },
                         onError = { errorMessage = it }
                     )
