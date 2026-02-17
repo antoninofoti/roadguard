@@ -11,27 +11,93 @@ import android.location.Location
 import android.os.Binder
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
+import com.example.roadguard.sensor.AnomalyDetector
+import com.example.roadguard.sensor.AnomalyEvent
+import com.example.roadguard.sensor.KalmanFilter3D
+import com.example.roadguard.sensor.SensorDataPoint
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.firebase.firestore.GeoPoint
+import java.util.ArrayDeque
 import kotlin.math.sqrt
 
+/**
+ * Enhanced sensor service with Kalman filtering and anomaly detection.
+ *
+ * Pipeline:
+ * 1. Raw IMU readings (accelerometer + gyroscope)
+ * 2. Kalman Filter 3D (noise reduction on each axis)
+ * 3. Sliding Window Anomaly Detector (z-score analysis)
+ * 4. AnomalyEvent emission via callback
+ *
+ * The service collects sensor data at SENSOR_DELAY_GAME rate (~50Hz)
+ * and emits [AnomalyEvent]s when road damage patterns are detected.
+ */
 class SensorService : Service(), SensorEventListener {
 
+    companion object {
+        private const val TAG = "SensorService"
+
+        // Sensor sampling — SENSOR_DELAY_GAME = ~50Hz for good time resolution
+        private const val SENSOR_DELAY = SensorManager.SENSOR_DELAY_GAME
+
+        // Sliding window for recent data points (for external consumers)
+        private const val DATA_WINDOW_SIZE = 200  // ~4 seconds at 50Hz
+
+        // Kalman filter parameters (calibrated from prototype)
+        private const val ACCEL_Q = 0.01f   // Process noise for accelerometer
+        private const val ACCEL_R = 0.5f    // Measurement noise for accelerometer
+        private const val GYRO_Q = 0.005f   // Process noise for gyroscope
+        private const val GYRO_R = 0.3f     // Measurement noise for gyroscope
+
+        // Anomaly detector parameters
+        private const val WINDOW_SIZE = 50          // ~1 second at 50Hz
+        private const val ACCEL_THRESHOLD = 2.5f    // Z-score threshold
+        private const val GYRO_THRESHOLD = 2.0f     // Z-score threshold
+    }
+
+    // System services
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
 
+    // Location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
     private var currentLocation: Location? = null
 
-    private val binder = LocalBinder()
+    // Kalman filters
+    private val accelKalman = KalmanFilter3D(q = ACCEL_Q, r = ACCEL_R)
+    private val gyroKalman = KalmanFilter3D(q = GYRO_Q, r = GYRO_R)
+
+    // Anomaly detector
+    private val anomalyDetector = AnomalyDetector(
+        windowSize = WINDOW_SIZE,
+        accelStdThreshold = ACCEL_THRESHOLD,
+        gyroStdThreshold = GYRO_THRESHOLD
+    )
+
+    // Data storage
+    private val recentDataPoints = ArrayDeque<SensorDataPoint>(DATA_WINDOW_SIZE)
+
+    // Latest raw readings (updated on each sensor event)
+    private var latestAccel = floatArrayOf(0f, 0f, 0f)
+    private var latestGyro = floatArrayOf(0f, 0f, 0f)
+
+    // Legacy compatibility — max values for simple severity calculation
     private var maxAcceleration = 0f
     private var maxRotation = 0f
+
+    // Anomaly event callback
+    private var onAnomalyDetected: ((AnomalyEvent) -> Unit)? = null
+
+    // Binding
+    private val binder = LocalBinder()
 
     inner class LocalBinder : Binder() {
         fun getService(): SensorService = this@SensorService
@@ -45,11 +111,15 @@ class SensorService : Service(), SensorEventListener {
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
 
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
-        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
+        // Register at GAME rate for better temporal resolution
+        accelerometer?.let {
+            sensorManager.registerListener(this, it, SENSOR_DELAY)
+        }
+        gyroscope?.let {
+            sensorManager.registerListener(this, it, SENSOR_DELAY)
+        }
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        startLocationUpdates()
 
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(locationResult: LocationResult) {
@@ -58,28 +128,47 @@ class SensorService : Service(), SensorEventListener {
                 }
             }
         }
+
+        startLocationUpdates()
+        Log.d(TAG, "SensorService started with Kalman filtering and anomaly detection")
     }
 
     override fun onDestroy() {
         super.onDestroy()
         sensorManager.unregisterListener(this)
         stopLocationUpdates()
+        Log.d(TAG, "SensorService stopped")
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
-        event?.let {
-            when (it.sensor.type) {
-                Sensor.TYPE_ACCELEROMETER -> {
-                    val acceleration = sqrt(it.values[0] * it.values[0] + it.values[1] * it.values[1] + it.values[2] * it.values[2])
-                    if (acceleration > maxAcceleration) {
-                        maxAcceleration = acceleration
-                    }
+        event ?: return
+
+        when (event.sensor.type) {
+            Sensor.TYPE_ACCELEROMETER -> {
+                latestAccel = event.values.copyOf()
+                processReadings(event.timestamp)
+
+                // Legacy: track max acceleration
+                val rawMag = sqrt(
+                    event.values[0] * event.values[0] +
+                    event.values[1] * event.values[1] +
+                    event.values[2] * event.values[2]
+                )
+                if (rawMag > maxAcceleration) {
+                    maxAcceleration = rawMag
                 }
-                Sensor.TYPE_GYROSCOPE -> {
-                    val rotation = sqrt(it.values[0] * it.values[0] + it.values[1] * it.values[1] + it.values[2] * it.values[2])
-                    if (rotation > maxRotation) {
-                        maxRotation = rotation
-                    }
+            }
+            Sensor.TYPE_GYROSCOPE -> {
+                latestGyro = event.values.copyOf()
+
+                // Legacy: track max rotation
+                val rawMag = sqrt(
+                    event.values[0] * event.values[0] +
+                    event.values[1] * event.values[1] +
+                    event.values[2] * event.values[2]
+                )
+                if (rawMag > maxRotation) {
+                    maxRotation = rawMag
                 }
             }
         }
@@ -87,18 +176,124 @@ class SensorService : Service(), SensorEventListener {
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
+    /**
+     * Core processing pipeline:
+     * Raw IMU → Kalman Filter → Anomaly Detector → Event Emission
+     */
+    private fun processReadings(timestamp: Long) {
+        // Step 1: Apply Kalman filter to reduce noise
+        val filteredAccelMag = accelKalman.updateAndGetMagnitude(
+            latestAccel[0], latestAccel[1], latestAccel[2]
+        )
+        val filteredGyroMag = gyroKalman.updateAndGetMagnitude(
+            latestGyro[0], latestGyro[1], latestGyro[2]
+        )
+
+        // Step 2: Create data point and add to window
+        val dataPoint = SensorDataPoint(
+            timestamp = timestamp,
+            accelX = latestAccel[0],
+            accelY = latestAccel[1],
+            accelZ = latestAccel[2],
+            gyroX = latestGyro[0],
+            gyroY = latestGyro[1],
+            gyroZ = latestGyro[2],
+            filteredAccelMagnitude = filteredAccelMag,
+            filteredGyroMagnitude = filteredGyroMag
+        )
+
+        // Maintain sliding window
+        if (recentDataPoints.size >= DATA_WINDOW_SIZE) {
+            recentDataPoints.removeFirst()
+        }
+        recentDataPoints.addLast(dataPoint)
+
+        // Step 3: Check for anomaly
+        val event = anomalyDetector.addReading(
+            accelMagnitude = filteredAccelMag,
+            gyroMagnitude = filteredGyroMag,
+            timestamp = timestamp
+        )
+
+        // Step 4: Emit event if detected
+        if (event != null) {
+            val geoPoint = currentLocation?.let {
+                GeoPoint(it.latitude, it.longitude)
+            }
+            val locatedEvent = event.copy(location = geoPoint)
+
+            Log.d(TAG, "Anomaly detected: ${locatedEvent.type}, " +
+                    "severity=${locatedEvent.severity}, " +
+                    "confidence=${locatedEvent.confidence}")
+
+            onAnomalyDetected?.invoke(locatedEvent)
+        }
+    }
+
+    // ========== Public API ==========
+
+    /**
+     * Set a callback to receive anomaly events.
+     * Called on the sensor thread — use appropriate dispatching for UI updates.
+     */
+    fun setOnAnomalyDetectedListener(listener: ((AnomalyEvent) -> Unit)?) {
+        onAnomalyDetected = listener
+    }
+
+    /**
+     * Get the most recent filtered sensor data points.
+     * Useful for displaying sensor graphs in the UI.
+     */
+    fun getRecentDataPoints(): List<SensorDataPoint> {
+        return recentDataPoints.toList()
+    }
+
+    /**
+     * Get the latest filtered accelerometer magnitude.
+     */
+    fun getFilteredAccelMagnitude(): Float {
+        return recentDataPoints.peekLast()?.filteredAccelMagnitude ?: 0f
+    }
+
+    /**
+     * Get the latest filtered gyroscope magnitude.
+     */
+    fun getFilteredGyroMagnitude(): Float {
+        return recentDataPoints.peekLast()?.filteredGyroMagnitude ?: 0f
+    }
+
+    /**
+     * Legacy severity calculation for backward compatibility.
+     *
+     * Combines max acceleration and rotation with weights.
+     * Resets max values after reading.
+     *
+     * @return Simple severity score (not normalized 0-1, raw weighted sum)
+     */
     fun getSeverity(): Float {
-        // Simple severity calculation
         val severity = (maxAcceleration * 0.7 + maxRotation * 0.3).toFloat()
-        // Reset max values after getting severity
         maxAcceleration = 0f
         maxRotation = 0f
         return severity
     }
 
+    /** Get current GPS location. */
     fun getCurrentLocation(): Location? {
         return currentLocation
     }
+
+    /** Reset the sensor fusion pipeline (filters + detector + data window). */
+    fun resetPipeline() {
+        accelKalman.reset()
+        gyroKalman.reset()
+        anomalyDetector.reset()
+        recentDataPoints.clear()
+        maxAcceleration = 0f
+        maxRotation = 0f
+        Log.d(TAG, "Sensor fusion pipeline reset")
+    }
+
+    // ========== Location ==========
 
     private fun startLocationUpdates() {
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
@@ -108,11 +303,13 @@ class SensorService : Service(), SensorEventListener {
             .build()
 
         try {
-            fusedLocationClient.requestLocationUpdates(locationRequest,
+            fusedLocationClient.requestLocationUpdates(
+                locationRequest,
                 locationCallback,
-                Looper.getMainLooper())
+                Looper.getMainLooper()
+            )
         } catch (unlikely: SecurityException) {
-            // Log.e(TAG, "Lost location permission. Could not request updates. $unlikely")
+            Log.e(TAG, "Lost location permission: $unlikely")
         }
     }
 

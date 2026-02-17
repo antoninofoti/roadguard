@@ -57,7 +57,7 @@ fun ReportDetailScreen(
             onValueChange = { severity = it },
             label = { Text("Severity") },
             modifier = Modifier.fillMaxWidth(),
-            readOnly = !(user?.role == "admin" || user?.uid == report.userId)
+            readOnly = !(user?.isOperator() == true || user?.uid == report.userId)
         )
         report.location?.let {
             GoogleMap(modifier = Modifier.weight(1f)) {
@@ -71,7 +71,7 @@ fun ReportDetailScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            if (user?.role == "admin" || user?.uid == report.userId) {
+            if (user?.isOperator() == true || user?.uid == report.userId) {
                 Button(onClick = {
                     val updatedReport = report.copy(severity = severity.toFloat())
                     homeViewModel.updateReport(updatedReport)
