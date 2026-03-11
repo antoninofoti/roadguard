@@ -23,7 +23,12 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.firebase.firestore.GeoPoint
+import java.io.File
+import java.io.FileWriter
+import java.text.SimpleDateFormat
 import java.util.ArrayDeque
+import java.util.Date
+import java.util.Locale
 import kotlin.math.sqrt
 
 /**
@@ -93,6 +98,12 @@ class SensorService : Service(), SensorEventListener {
     private var maxAcceleration = 0f
     private var maxRotation = 0f
 
+    // Logging
+    var isLoggingEnabled = false
+        private set
+    private var csvWriter: FileWriter? = null
+    private var currentCsvFile: File? = null
+
     // Anomaly event callback
     private var onAnomalyDetected: ((AnomalyEvent) -> Unit)? = null
 
@@ -137,6 +148,7 @@ class SensorService : Service(), SensorEventListener {
         super.onDestroy()
         sensorManager.unregisterListener(this)
         stopLocationUpdates()
+        stopLogging()
         Log.d(TAG, "SensorService stopped")
     }
 
@@ -228,9 +240,111 @@ class SensorService : Service(), SensorEventListener {
 
             onAnomalyDetected?.invoke(locatedEvent)
         }
+
+        // Step 5: Log to CSV if enabled
+        if (isLoggingEnabled) {
+            logToCsv(
+                timestamp = timestamp,
+                accelRaw = latestAccel,
+                accelFiltered = floatArrayOf(
+                    latestAccel[0], latestAccel[1], latestAccel[2] // Placeholder, we don't store filtered axes
+                ),
+                accelMagFiltered = filteredAccelMag,
+                gyroRaw = latestGyro,
+                gyroFiltered = floatArrayOf(
+                    latestGyro[0], latestGyro[1], latestGyro[2] // Placeholder, we don't store filtered axes
+                ),
+                gyroMagFiltered = filteredGyroMag,
+                location = currentLocation,
+                event = event
+            )
+        }
     }
 
     // ========== Public API ==========
+
+    fun toggleLogging(enabled: Boolean) {
+        if (enabled == isLoggingEnabled) return
+        if (enabled) {
+            startLogging()
+        } else {
+            stopLogging()
+        }
+    }
+
+    private fun startLogging() {
+        try {
+            val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+            val fileName = "SensorLog_$timeStamp.csv"
+            currentCsvFile = File(getExternalFilesDir(null), fileName)
+            csvWriter = FileWriter(currentCsvFile)
+            
+            // Write CSV Header
+            val header = "Timestamp,Accel_Raw_X,Accel_Raw_Y,Accel_Raw_Z," +
+                    "Accel_Filtered_Mag," + // We only track magnitude of filtered accel/gyro in SensorDataPoint right now implicitly via Kalman output
+                    "Gyro_Raw_X,Gyro_Raw_Y,Gyro_Raw_Z," +
+                    "Gyro_Filtered_Mag," +
+                    "Lat,Lng,Speed_kmh," +
+                    "Anomaly_Type,Anomaly_Confidence\n"
+            csvWriter?.append(header)
+            
+            isLoggingEnabled = true
+            Log.d(TAG, "Logging started: ${currentCsvFile?.absolutePath}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start logging", e)
+            isLoggingEnabled = false
+        }
+    }
+
+    private fun stopLogging() {
+        if (!isLoggingEnabled) return
+        try {
+            csvWriter?.flush()
+            csvWriter?.close()
+            csvWriter = null
+            Log.d(TAG, "Logging stopped: ${currentCsvFile?.absolutePath}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop logging", e)
+        } finally {
+            isLoggingEnabled = false
+        }
+    }
+
+    private fun logToCsv(
+        timestamp: Long,
+        accelRaw: FloatArray,
+        accelFiltered: FloatArray,
+        accelMagFiltered: Float,
+        gyroRaw: FloatArray,
+        gyroFiltered: FloatArray,
+        gyroMagFiltered: Float,
+        location: Location?,
+        event: AnomalyEvent?
+    ) {
+        try {
+            val lat = location?.latitude?.toString() ?: ""
+            val lng = location?.longitude?.toString() ?: ""
+            val speedKmh = location?.speed?.let { (it * 3.6).toString() } ?: ""
+            val anomalyType = event?.type?.name ?: ""
+            val anomalyConfidence = event?.confidence?.toString() ?: ""
+
+            val line = "$timestamp,${accelRaw[0]},${accelRaw[1]},${accelRaw[2]}," +
+                    "${accelMagFiltered}," +
+                    "${gyroRaw[0]},${gyroRaw[1]},${gyroRaw[2]}," +
+                    "${gyroMagFiltered}," +
+                    "$lat,$lng,$speedKmh,$anomalyType,$anomalyConfidence\n"
+            
+            csvWriter?.append(line)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error writing to CSV", e)
+            // Auto stop on error
+            stopLogging()
+        }
+    }
+
+    fun getLatestLogFile(): File? {
+        return currentCsvFile
+    }
 
     /**
      * Set a callback to receive anomaly events.

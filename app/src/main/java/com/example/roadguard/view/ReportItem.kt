@@ -45,7 +45,11 @@ fun ReportItem(report: Report) {
                 Text("Date: $formattedDate", style = MaterialTheme.typography.bodyMedium)
                 Text("Severity: ${report.severity}", style = MaterialTheme.typography.bodyMedium)
                 report.location?.let {
-                    Text("Location: (${String.format("%.4f", it.latitude)}, ${String.format("%.4f", it.longitude)})", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "Location: (${String.format(Locale.US, "%.4f", it.latitude)}, " +
+                        "${String.format(Locale.US, "%.4f", it.longitude)})", 
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
         }

@@ -28,7 +28,7 @@ class PotholeDetectionHelper(context: Context) {
         private const val INPUT_IMAGE_HEIGHT = 640
 
         fun initOpenCV() {
-            OpenCVLoader.initDebug()
+            OpenCVLoader.initLocal()
         }
     }
 
@@ -82,7 +82,7 @@ class PotholeDetectionHelper(context: Context) {
             val w = outputBuffer[0][2][i]
             val h = outputBuffer[0][3][i]
             val conf = outputBuffer[0][4][i]
-            val cls = outputBuffer[0][5][i]
+            // val cls = outputBuffer[0][5][i] (Unused for now)
             if (conf > confThreshold) {
                 val left = (x - w / 2) * (originalWidth / INPUT_IMAGE_WIDTH)
                 val top = (y - h / 2) * (originalHeight / INPUT_IMAGE_HEIGHT)

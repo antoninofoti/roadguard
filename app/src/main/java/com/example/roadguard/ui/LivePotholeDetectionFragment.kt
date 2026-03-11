@@ -26,6 +26,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -44,6 +46,8 @@ import com.example.roadguard.tflite.PotholeDetectionHelper
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.CoroutineScope
@@ -67,7 +71,6 @@ class LivePotholeDetectionFragment : Fragment() {
 
     companion object {
         private const val TAG = "LivePotholeDetection"
-        private const val PERMISSION_REQUEST_CODE = 1001
         private const val ANALYSIS_INTERVAL_MS = 350L
         private const val REPORT_COOLDOWN_MS = 5000L
     }
@@ -99,7 +102,7 @@ class LivePotholeDetectionFragment : Fragment() {
     private var emptyDetectionFrames = 0
     private val emptyDetectionThreshold = 10
 
-    private val REQUIRED_PERMISSIONS = arrayOf(
+    private val requiredPermissions = arrayOf(
         Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION
@@ -107,6 +110,21 @@ class LivePotholeDetectionFragment : Fragment() {
 
     // Last captured bitmap for report creation
     private var lastCapturedBitmap: Bitmap? = null
+
+    // Permission launcher
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions.isNotEmpty() && permissions.values.all { it }) {
+            permissionsGranted = true
+            updateLastKnownLocation()
+            startCamera()
+        } else {
+            progressBar.visibility = View.GONE
+            Toast.makeText(requireContext(), "Permissions required", Toast.LENGTH_LONG).show()
+            requireActivity().supportFragmentManager.popBackStack()
+        }
+    }
 
     // Service connection to SensorService
     private val serviceConnection = object : ServiceConnection {
@@ -211,7 +229,7 @@ class LivePotholeDetectionFragment : Fragment() {
 
         if (!allPermissionsGranted()) {
             progressBar.visibility = View.VISIBLE
-            requestPermissions(REQUIRED_PERMISSIONS, PERMISSION_REQUEST_CODE)
+            requestPermissionLauncher.launch(requiredPermissions)
         } else {
             permissionsGranted = true
             progressBar.visibility = View.GONE
@@ -359,8 +377,12 @@ class LivePotholeDetectionFragment : Fragment() {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
 
+            val resolutionSelector = ResolutionSelector.Builder()
+                .setResolutionStrategy(ResolutionStrategy(Size(640, 640), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
+                .build()
+
             val imageAnalyzer = ImageAnalysis.Builder()
-                .setTargetResolution(Size(640, 640))
+                .setResolutionSelector(resolutionSelector)
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
                 .also {
@@ -467,10 +489,10 @@ class LivePotholeDetectionFragment : Fragment() {
                     lastKnownLocation = location
                 } else {
                     fusedLocationClient.getCurrentLocation(
-                        LocationRequest.PRIORITY_HIGH_ACCURACY,
+                        Priority.PRIORITY_HIGH_ACCURACY,
                         CancellationTokenSource().token
                     ).addOnSuccessListener { loc ->
-                        if (loc != null && loc is Location) lastKnownLocation = loc
+                        if (loc != null) lastKnownLocation = loc
                     }
                 }
             }
@@ -485,25 +507,8 @@ class LivePotholeDetectionFragment : Fragment() {
     // ========== Permissions ==========
 
     private fun allPermissionsGranted(): Boolean {
-        return REQUIRED_PERMISSIONS.all {
+        return requiredPermissions.all {
             ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSION_REQUEST_CODE) {
-            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
-                permissionsGranted = true
-                progressBar.visibility = View.GONE
-                startCameraAndLocation()
-            } else {
-                progressBar.visibility = View.GONE
-                Toast.makeText(requireContext(), "Permissions required", Toast.LENGTH_LONG).show()
-                requireActivity().supportFragmentManager.popBackStack()
-            }
         }
     }
 

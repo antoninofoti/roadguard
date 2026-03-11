@@ -10,9 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import android.util.Log
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -72,6 +73,8 @@ fun OperatorReportDetailScreen(
     val currentStatus = try {
         ReportStatus.valueOf(report.status)
     } catch (e: Exception) {
+        // Fallback if status string is invalid or unparseable
+        Log.w("OperatorReportDetail", "Invalid report status: ${report.status}", e)
         ReportStatus.PENDING
     }
 
@@ -81,7 +84,7 @@ fun OperatorReportDetailScreen(
                 title = { Text("Report Detail") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )

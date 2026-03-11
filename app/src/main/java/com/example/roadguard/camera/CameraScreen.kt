@@ -61,7 +61,7 @@ fun CameraScreen(navController: NavController) {
     var isUploading by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        if (!OpenCVLoader.initDebug()) {
+        if (!OpenCVLoader.initLocal()) {
             Log.e("CameraScreen", "OpenCV initialization failed")
         } else {
             Log.d("CameraScreen", "OpenCV initialization successful")

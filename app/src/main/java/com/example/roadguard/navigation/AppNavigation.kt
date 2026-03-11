@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
@@ -38,7 +38,7 @@ import com.example.roadguard.view.ReportsViewModel
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
-    object Reports : Screen("reports", "Reports", Icons.Default.List)
+    object Reports : Screen("reports", "Reports", Icons.AutoMirrored.Filled.List)
     object Map : Screen("map", "Map", Icons.Default.LocationOn)
     object OperatorDashboard : Screen("operator", "Dashboard", Icons.Default.Build)
     object Analytics : Screen("analytics", "Analytics", Icons.Default.Star)

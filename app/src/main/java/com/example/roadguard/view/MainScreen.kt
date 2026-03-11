@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import java.util.Locale
 import androidx.navigation.NavController
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun MainScreen(viewModel: MainViewModel, navController: NavController) {
     val context = LocalContext.current
@@ -58,18 +59,6 @@ fun MainScreen(viewModel: MainViewModel, navController: NavController) {
         }
     }
 
-    val launcher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
-        uri?.let {
-            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, it))
-            } else {
-                MediaStore.Images.Media.getBitmap(context.contentResolver, it)
-            }.copy(Bitmap.Config.ARGB_8888, true)
-
-            viewModel.imageBitmap.value = bitmap
-            viewModel.detections.value = potholeDetectionHelper.detectPotholes(bitmap)
-        }
-    }
 
     // Observe report saving state
     val isSaving = viewModel.isSavingReport.value
@@ -184,13 +173,13 @@ fun SeverityIndicator(severity: Float) {
         Spacer(modifier = Modifier.height(8.dp))
         Box(contentAlignment = Alignment.Center) {
             CircularProgressIndicator(
-                progress = 1f,
+                progress = { 1f },
                 modifier = Modifier.size(100.dp),
                 color = Color.LightGray,
                 strokeWidth = 8.dp
             )
             CircularProgressIndicator(
-                progress = progress,
+                progress = { progress },
                 modifier = Modifier.size(100.dp),
                 color = severityColor,
                 strokeWidth = 8.dp,
