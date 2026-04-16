@@ -27,10 +27,26 @@ jobs:
           distribution: 'temurin'
 
       # ── Firebase credentials (from GitHub Secret) ────────────
-      - name: Decode google-services.json
+      - name: Provision google-services.json
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
-        run: echo "$GOOGLE_SERVICES_JSON" | base64 -d > app/google-services.json
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -n "${GOOGLE_SERVICES_JSON:-}" ]]; then
+            # Support either raw JSON or base64-encoded JSON in the secret.
+            if [[ "$GOOGLE_SERVICES_JSON" =~ ^[[:space:]]*\{ ]]; then
+              printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            else
+              printf '%s' "$GOOGLE_SERVICES_JSON" | base64 --decode > app/google-services.json
+            fi
+          elif [[ ! -f app/google-services.json ]]; then
+            echo "Missing Firebase config: set GOOGLE_SERVICES_JSON secret or commit app/google-services.json."
+            exit 1
+          fi
+
+          python3 -c "import json; json.load(open('app/google-services.json', encoding='utf-8'))"
 
       # ── local.properties for CI ──────────────────────────────
       - name: Create local.properties
