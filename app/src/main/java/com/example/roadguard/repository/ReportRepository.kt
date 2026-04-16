@@ -10,6 +10,7 @@ import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
+import java.io.File
 import java.util.Date
 import java.util.UUID
 
@@ -21,6 +22,7 @@ class ReportRepository {
 
     private val reportsCollection = firestore.collection("reports")
     private val storageReference = storage.reference.child("report_images")
+    private val sensorLogsReference = storage.reference.child("sensor_logs")
 
     // ========== Original methods (backward compatible) ==========
 
@@ -204,6 +206,23 @@ class ReportRepository {
                 .await()
             val reports = snapshot.toObjects(Report::class.java)
             Result.success(reports)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Upload a raw sensor log CSV to Firebase Storage.
+     *
+     * @param file The local CSV file to upload
+     */
+    suspend fun uploadSensorLog(file: File): Result<Uri> {
+        return try {
+            val fileName = file.name
+            val logRef = sensorLogsReference.child(fileName)
+            val uploadTask = logRef.putFile(Uri.fromFile(file)).await()
+            val downloadUrl = uploadTask.storage.downloadUrl.await()
+            Result.success(downloadUrl)
         } catch (e: Exception) {
             Result.failure(e)
         }

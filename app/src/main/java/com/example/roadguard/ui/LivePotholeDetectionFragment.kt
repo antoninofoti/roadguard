@@ -204,6 +204,40 @@ class LivePotholeDetectionFragment : Fragment() {
         }
         (view as FrameLayout).addView(fusionStatusText)
 
+        // REC button for logging
+        val btnRec = Button(requireContext()).apply {
+            text = "● REC"
+            setTextColor(ContextCompat.getColor(context, android.R.color.white))
+            setBackgroundResource(R.drawable.button_rec_background) // We'll need to create this or use a color
+            setOnClickListener {
+                val isLogging = sensorService?.isLoggingEnabled ?: false
+                sensorService?.toggleLogging(!isLogging)
+                if (sensorService?.isLoggingEnabled == true) {
+                    text = "■ STOP"
+                    backgroundTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(context, android.R.color.holo_red_dark)
+                    )
+                    Toast.makeText(context, "Logging started", Toast.LENGTH_SHORT).show()
+                } else {
+                    text = "● REC"
+                    backgroundTintList = android.content.res.ColorStateList.valueOf(
+                        ContextCompat.getColor(context, R.color.purple_500)
+                    )
+                    Toast.makeText(context, "Logging saved to storage", Toast.LENGTH_SHORT).show()
+                }
+            }
+            val params = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.gravity = Gravity.TOP or Gravity.END
+            params.topMargin = 64
+            params.rightMargin = 32
+            layoutParams = params
+            elevation = 10f
+        }
+        (view as FrameLayout).addView(btnRec)
+
         // Handle hardware back button
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner,

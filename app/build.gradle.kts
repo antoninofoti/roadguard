@@ -27,7 +27,27 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY") ?: ""
+
+        // Phase G.4 — NDK/JNI: native Kalman filter in C
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++17"
+                arguments += "-DANDROID_STL=c++_shared"
+            }
+        }
     }
+
+    // Phase G.4 — NDK CMake build: points to the C/JNI source directory
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
 
     testOptions {
         unitTests.isReturnDefaultValues = true
@@ -83,6 +103,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+
+    // ExifInterface — EXIF stripping for GDPR compliance (Phase F.2)
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     // Navigation
     implementation(libs.androidx.navigation.compose)

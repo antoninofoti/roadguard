@@ -1,3 +1,136 @@
 <resources>
+    <!-- App Identity -->
     <string name="app_name">RoadGuard</string>
+    <string name="app_tagline">Road anomaly detection system</string>
+
+    <!-- Navigation / Tabs -->
+    <string name="nav_home">Home</string>
+    <string name="nav_map">Map</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="nav_operator">Operator</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Detection Status -->
+    <string name="status_scanning">Scanning…</string>
+    <string name="status_anomaly_detected">Anomaly Detected!</string>
+    <string name="status_no_anomaly">Road Clear</string>
+    <string name="status_initializing">Initializing sensors…</string>
+    <string name="status_camera_error">Camera unavailable</string>
+    <string name="status_gps_waiting">Waiting for GPS…</string>
+
+    <!-- Detection Actions -->
+    <string name="action_confirm">Confirm</string>
+    <string name="action_dismiss">Dismiss</string>
+    <string name="action_report">Report Anomaly</string>
+    <string name="action_start_detection">Start Detection</string>
+    <string name="action_stop_detection">Stop Detection</string>
+    <string name="action_export_csv">Export CSV Log</string>
+    <string name="action_share">Share</string>
+    <string name="action_upload">Upload</string>
+    <string name="action_retry">Retry</string>
+
+    <!-- Damage Types -->
+    <string name="damage_pothole">Pothole</string>
+    <string name="damage_bump">Rough Surface</string>
+    <string name="damage_speed_bump">Speed Bump</string>
+    <string name="damage_roughness">Road Roughness</string>
+    <string name="damage_crack">Crack</string>
+    <string name="damage_unknown">Unknown Anomaly</string>
+
+    <!-- Detection Modes (Phase E) -->
+    <string name="mode_cv_only">CV Only</string>
+    <string name="mode_sensor_only">Sensor Only</string>
+    <string name="mode_fixed_fusion">Fixed Fusion</string>
+    <string name="mode_adaptive_fusion">Adaptive Fusion</string>
+    <string name="mode_description_cv_only">Camera-based detection only (YOLOv8)</string>
+    <string name="mode_description_sensor_only">IMU sensor detection only</string>
+    <string name="mode_description_fixed_fusion">Fusion with fixed weights (α=0.55, β=0.30)</string>
+    <string name="mode_description_adaptive_fusion">Context-aware fusion (adapts to speed and lighting)</string>
+
+    <!-- Fusion Score Labels -->
+    <string name="score_auto_report">Auto-Reported</string>
+    <string name="score_prompt_user">Please Confirm</string>
+    <string name="score_discarded">Below Threshold</string>
+    <string name="label_fused_score">Fusion Score</string>
+    <string name="label_cv_score">CV Confidence</string>
+    <string name="label_sensor_score">Sensor Confidence</string>
+
+    <!-- Report Status -->
+    <string name="report_status_pending">Pending Review</string>
+    <string name="report_status_confirmed">Confirmed</string>
+    <string name="report_status_resolved">Resolved</string>
+
+    <!-- Operator Dashboard -->
+    <string name="operator_dashboard_title">Operator Dashboard</string>
+    <string name="operator_pending_count">%d pending reports</string>
+    <string name="operator_action_confirm">Confirm Report</string>
+    <string name="operator_action_resolve">Mark Resolved</string>
+    <string name="operator_action_reject">Reject</string>
+    <string name="operator_notes_hint">Add operator notes…</string>
+    <string name="operator_filter_status">Filter by status</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_detection_mode">Detection Mode</string>
+    <string name="settings_logging">Enable CSV Logging</string>
+    <string name="settings_logging_description">Record sensor data to a CSV file for analysis</string>
+    <string name="settings_auto_upload">Auto-upload logs</string>
+    <string name="settings_auto_upload_description">Upload CSV logs to Firebase after each session</string>
+    <string name="settings_language">Language</string>
+
+    <!-- Logging / CSV -->
+    <string name="logging_started">Logging started: %s</string>
+    <string name="logging_stopped">Logging stopped. %d rows written.</string>
+    <string name="logging_upload_success">Log uploaded successfully</string>
+    <string name="logging_upload_error">Upload failed: %s</string>
+
+    <!-- Evaluation Session -->
+    <string name="eval_session_label">Evaluation Session</string>
+    <string name="eval_session_condition_hint">Condition (e.g., Day+Dry)</string>
+    <string name="eval_session_route_hint">Route name (e.g., Route_A)</string>
+    <string name="eval_session_start">Start Evaluation Session</string>
+    <string name="eval_session_stop">Stop Session</string>
+    <string name="eval_session_events">%d events recorded</string>
+
+    <!-- Permissions -->
+    <string name="permission_camera_rationale">Camera access is required for road damage detection using YOLOv8.</string>
+    <string name="permission_location_rationale">Location access is required to tag anomaly reports with GPS coordinates.</string>
+    <string name="permission_storage_rationale">Storage access is required to save sensor log CSV files.</string>
+    <string name="permission_denied_info">Some features will be limited without this permission.</string>
+
+    <!-- Errors -->
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_no_network">No internet connection</string>
+    <string name="error_auth_required">Please sign in to submit reports</string>
+    <string name="error_gps_unavailable">GPS unavailable. Coordinates not recorded.</string>
+    <string name="error_rate_limited">Report submission temporarily limited. Please wait.</string>
+    <string name="error_validation_coords">Invalid GPS coordinates for this region</string>
+    <string name="error_validation_score">Invalid detection score</string>
+
+    <!-- Accessibility -->
+    <string name="cd_anomaly_icon">Road anomaly detected icon</string>
+    <string name="cd_map_marker_pothole">Pothole marker on map</string>
+    <string name="cd_map_marker_bump">Road bump marker on map</string>
+    <string name="cd_detection_score_bar">Detection confidence bar, score: %s</string>
+    <string name="cd_start_detection_button">Start road anomaly detection</string>
+    <string name="cd_stop_detection_button">Stop detection</string>
+    <string name="cd_operator_confirm_button">Confirm this report as a verified anomaly</string>
+
+    <!-- Onboarding (Phase I.2) -->
+    <string name="onboarding_title_1">Welcome to RoadGuard</string>
+    <string name="onboarding_body_1">RoadGuard uses your phone\'s camera and sensors to detect road damage automatically while you drive.</string>
+    <string name="onboarding_title_2">How It Works</string>
+    <string name="onboarding_body_2">The app fuses computer vision (YOLOv8) with accelerometer and gyroscope data for more accurate detection than either source alone.</string>
+    <string name="onboarding_title_3">Your Data</string>
+    <string name="onboarding_body_3">Images are stripped of GPS metadata before upload. You control what gets reported. GDPR-compliant.</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_done">Get Started</string>
+
+    <!-- About -->
+    <string name="about_title">About RoadGuard</string>
+    <string name="about_version">Version %s</string>
+    <string name="about_thesis">MSc Thesis — Engineering in Computer Science</string>
+    <string name="about_university">Sapienza University of Rome</string>
 </resources>

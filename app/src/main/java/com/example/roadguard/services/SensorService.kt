@@ -12,6 +12,9 @@ import android.os.Binder
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import com.example.roadguard.detection.FusionContext
+import com.example.roadguard.detection.context.LightContextProvider
+import com.example.roadguard.repository.ReportRepository
 import com.example.roadguard.sensor.AnomalyDetector
 import com.example.roadguard.sensor.AnomalyEvent
 import com.example.roadguard.sensor.KalmanFilter3D
@@ -27,21 +30,29 @@ import java.io.File
 import java.io.FileWriter
 import java.text.SimpleDateFormat
 import java.util.ArrayDeque
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.sqrt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Enhanced sensor service with Kalman filtering and anomaly detection.
  *
  * Pipeline:
- * 1. Raw IMU readings (accelerometer + gyroscope)
+ * 1. Raw IMU readings (accelerometer + gyroscope + ambient light)
  * 2. Kalman Filter 3D (noise reduction on each axis)
  * 3. Sliding Window Anomaly Detector (z-score analysis)
  * 4. AnomalyEvent emission via callback
+ * 5. FusionContext update (speed, light → for adaptive weights)
  *
  * The service collects sensor data at SENSOR_DELAY_GAME rate (~50Hz)
  * and emits [AnomalyEvent]s when road damage patterns are detected.
+ *
+ * Phase D: Also maintains a [FusionContext] snapshot updated from
+ * GPS speed and ambient light sensor for context-aware fusion.
  */
 class SensorService : Service(), SensorEventListener {
 
@@ -70,6 +81,7 @@ class SensorService : Service(), SensorEventListener {
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
+    private var lightSensor: Sensor? = null
 
     // Location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -87,16 +99,23 @@ class SensorService : Service(), SensorEventListener {
         gyroStdThreshold = GYRO_THRESHOLD
     )
 
+    // Repository for uploads
+    private val reportRepository = ReportRepository()
+
     // Data storage
     private val recentDataPoints = ArrayDeque<SensorDataPoint>(DATA_WINDOW_SIZE)
 
     // Latest raw readings (updated on each sensor event)
     private var latestAccel = floatArrayOf(0f, 0f, 0f)
     private var latestGyro = floatArrayOf(0f, 0f, 0f)
+    private var latestLightLux: Float = -1f  // -1 = sensor not available
 
     // Legacy compatibility — max values for simple severity calculation
     private var maxAcceleration = 0f
     private var maxRotation = 0f
+
+    // Phase D: Current fusion context (speed + light)
+    private var currentFusionContext: FusionContext = FusionContext.UNKNOWN
 
     // Logging
     var isLoggingEnabled = false
@@ -121,6 +140,7 @@ class SensorService : Service(), SensorEventListener {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+        lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
 
         // Register at GAME rate for better temporal resolution
         accelerometer?.let {
@@ -129,6 +149,11 @@ class SensorService : Service(), SensorEventListener {
         gyroscope?.let {
             sensorManager.registerListener(this, it, SENSOR_DELAY)
         }
+        // Light sensor: normal rate is sufficient (changes slowly)
+        lightSensor?.let {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+            Log.d(TAG, "Ambient light sensor registered")
+        } ?: Log.w(TAG, "No ambient light sensor available — using time-based fallback")
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -136,6 +161,8 @@ class SensorService : Service(), SensorEventListener {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.locations.lastOrNull()?.let {
                     currentLocation = it
+                    // Update fusion context with fresh speed
+                    updateFusionContext()
                 }
             }
         }
@@ -182,6 +209,10 @@ class SensorService : Service(), SensorEventListener {
                 if (rawMag > maxRotation) {
                     maxRotation = rawMag
                 }
+            }
+            Sensor.TYPE_LIGHT -> {
+                latestLightLux = event.values[0]
+                updateFusionContext()
             }
         }
     }
@@ -261,6 +292,42 @@ class SensorService : Service(), SensorEventListener {
         }
     }
 
+    /**
+     * Update the FusionContext from current sensor and GPS state.
+     *
+     * Called whenever GPS location or ambient light changes.
+     * The context is exposed via [getCurrentFusionContext] for the
+     * FusionEngine to use in adaptive weight computation.
+     */
+    private fun updateFusionContext() {
+        val speedKmh = currentLocation?.speed?.let { it * 3.6f } ?: 0f
+
+        // Determine night time: prefer light sensor, fall back to solar calculation
+        val isNight = if (latestLightLux >= 0f) {
+            latestLightLux < LightContextProvider.TWILIGHT_THRESHOLD
+        } else {
+            // Fallback: use time-based estimation
+            val loc = currentLocation
+            if (loc != null) {
+                val cal = Calendar.getInstance()
+                LightContextProvider.estimateIsNight(
+                    latDegrees = loc.latitude,
+                    dayOfYear = cal.get(Calendar.DAY_OF_YEAR),
+                    hourOfDay = cal.get(Calendar.HOUR_OF_DAY),
+                    timezoneOffsetHours = cal.get(Calendar.ZONE_OFFSET) / 3_600_000
+                )
+            } else {
+                false
+            }
+        }
+
+        currentFusionContext = FusionContext(
+            speedKmh = speedKmh,
+            ambientLightLux = latestLightLux,
+            isNightTime = isNight
+        )
+    }
+
     // ========== Public API ==========
 
     fun toggleLogging(enabled: Boolean) {
@@ -279,12 +346,13 @@ class SensorService : Service(), SensorEventListener {
             currentCsvFile = File(getExternalFilesDir(null), fileName)
             csvWriter = FileWriter(currentCsvFile)
             
-            // Write CSV Header
+            // Write CSV Header (Phase D: added context columns for thesis evaluation)
             val header = "Timestamp,Accel_Raw_X,Accel_Raw_Y,Accel_Raw_Z," +
-                    "Accel_Filtered_Mag," + // We only track magnitude of filtered accel/gyro in SensorDataPoint right now implicitly via Kalman output
+                    "Accel_Filtered_Mag," +
                     "Gyro_Raw_X,Gyro_Raw_Y,Gyro_Raw_Z," +
                     "Gyro_Filtered_Mag," +
                     "Lat,Lng,Speed_kmh," +
+                    "AmbientLight_lux,IsNight," +
                     "Anomaly_Type,Anomaly_Confidence\n"
             csvWriter?.append(header)
             
@@ -303,6 +371,20 @@ class SensorService : Service(), SensorEventListener {
             csvWriter?.close()
             csvWriter = null
             Log.d(TAG, "Logging stopped: ${currentCsvFile?.absolutePath}")
+
+            // Auto-upload to Firebase Storage
+            currentCsvFile?.let { file ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    Log.d(TAG, "Starting upload of ${file.name} to Firebase Storage...")
+                    val result = reportRepository.uploadSensorLog(file)
+                    result.onSuccess { uri ->
+                        Log.d(TAG, "Log uploaded successfully: $uri")
+                    }
+                    result.onFailure { e ->
+                        Log.e(TAG, "Log upload failed", e)
+                    }
+                }
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop logging", e)
         } finally {
@@ -325,6 +407,8 @@ class SensorService : Service(), SensorEventListener {
             val lat = location?.latitude?.toString() ?: ""
             val lng = location?.longitude?.toString() ?: ""
             val speedKmh = location?.speed?.let { (it * 3.6).toString() } ?: ""
+            val lightLux = if (latestLightLux >= 0f) latestLightLux.toString() else ""
+            val isNight = currentFusionContext.isNightTime.toString()
             val anomalyType = event?.type?.name ?: ""
             val anomalyConfidence = event?.confidence?.toString() ?: ""
 
@@ -332,7 +416,9 @@ class SensorService : Service(), SensorEventListener {
                     "${accelMagFiltered}," +
                     "${gyroRaw[0]},${gyroRaw[1]},${gyroRaw[2]}," +
                     "${gyroMagFiltered}," +
-                    "$lat,$lng,$speedKmh,$anomalyType,$anomalyConfidence\n"
+                    "$lat,$lng,$speedKmh," +
+                    "$lightLux,$isNight," +
+                    "$anomalyType,$anomalyConfidence\n"
             
             csvWriter?.append(line)
         } catch (e: Exception) {
@@ -377,6 +463,21 @@ class SensorService : Service(), SensorEventListener {
     }
 
     /**
+     * Get the current FusionContext for adaptive fusion weights.
+     *
+     * The context is updated automatically from GPS speed and
+     * ambient light sensor readings. Used by the FusionEngine
+     * when operating in ADAPTIVE mode.
+     */
+    fun getCurrentFusionContext(): FusionContext = currentFusionContext
+
+    /**
+     * Get the latest ambient light reading in lux.
+     * Returns -1 if the light sensor is not available.
+     */
+    fun getAmbientLightLux(): Float = latestLightLux
+
+    /**
      * Legacy severity calculation for backward compatibility.
      *
      * Combines max acceleration and rotation with weights.
@@ -404,6 +505,8 @@ class SensorService : Service(), SensorEventListener {
         recentDataPoints.clear()
         maxAcceleration = 0f
         maxRotation = 0f
+        currentFusionContext = FusionContext.UNKNOWN
+        latestLightLux = -1f
         Log.d(TAG, "Sensor fusion pipeline reset")
     }
 

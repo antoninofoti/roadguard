@@ -1,9 +1,11 @@
 package com.example.roadguard.detection
 
 import android.util.Log
+import com.example.roadguard.detection.context.LightContextProvider
+import com.example.roadguard.detection.context.SpeedContextProvider
+import com.example.roadguard.evaluation.DetectionMode
 import com.example.roadguard.model.DetectionSource
 import com.example.roadguard.sensor.AnomalyEvent
-import com.example.roadguard.sensor.AnomalyType
 import kotlin.math.max
 import kotlin.math.min
 
@@ -14,22 +16,36 @@ import kotlin.math.min
  *
  *     Score = α × CV_confidence + β × Sensor_confidence + γ × Temporal_bonus
  *
- * Where:
+ * Where (base weights):
  * - α = 0.55 (CV weight — higher because visual provides spatial detail)
  * - β = 0.30 (Sensor weight — confirms physical road impact)
  * - γ = 0.15 (Temporal bonus — applied when both signals within ±2s window)
+ *
+ * **Phase D — Adaptive Weights (Original Thesis Contribution)**:
+ * When [fusionMode] is ADAPTIVE, weights are modulated by contextual signals:
+ *
+ *     α_eff = α_base × cv_modifier(speed, light)
+ *     β_eff = β_base × sensor_modifier(speed, light)
+ *     γ_eff = γ_base × (1 if both active else 0)
+ *     Normalize: α_eff + β_eff + γ_eff = 1
+ *
+ * This ensures the system adapts its trust in each modality based on
+ * real-time driving conditions, while maintaining the mathematical
+ * invariant that weights always sum to 1.0.
  *
  * Decision thresholds:
  * - Score > 0.75 → AUTO_REPORT (dual-confirmed, no user intervention)
  * - Score > 0.50 → PROMPT_USER (ask user to confirm)
  * - Score < 0.50 → DISCARD (log only)
  *
- * @param cvWeight Weight for CV confidence (α)
- * @param sensorWeight Weight for sensor confidence (β)
- * @param temporalWeight Weight for temporal correlation bonus (γ)
+ * @param cvWeight Base weight for CV confidence (α)
+ * @param sensorWeight Base weight for sensor confidence (β)
+ * @param temporalWeight Base weight for temporal correlation bonus (γ)
  * @param autoThreshold Score above which reports are created automatically
  * @param promptThreshold Score above which user is prompted for confirmation
  * @param temporalWindowMs Time window in ms for temporal correlation (±window)
+ * @param fusionMode FIXED (original) or ADAPTIVE (context-aware, thesis contribution)
+ * @param detectionMode Optional Phase E evaluation mode (overrides fusionMode when set)
  */
 class FusionEngine(
     private val cvWeight: Float = 0.55f,
@@ -37,7 +53,9 @@ class FusionEngine(
     private val temporalWeight: Float = 0.15f,
     private val autoThreshold: Float = 0.75f,
     private val promptThreshold: Float = 0.50f,
-    private val temporalWindowMs: Long = 2000L
+    private val temporalWindowMs: Long = 2000L,
+    var fusionMode: FusionMode = FusionMode.FIXED,
+    var detectionMode: DetectionMode? = null
 ) {
     companion object {
         private const val TAG = "FusionEngine"
@@ -50,6 +68,9 @@ class FusionEngine(
     // Max buffer size to prevent memory leaks
     private val maxBufferSize = 50
 
+    // Current environmental context (updated externally)
+    private var currentContext: FusionContext = FusionContext.UNKNOWN
+
     /**
      * A CV detection event (pothole detected by the TFLite model).
      */
@@ -58,6 +79,26 @@ class FusionEngine(
         val label: String,        // Detection class label
         val timestampMs: Long     // System.currentTimeMillis()
     )
+
+    /**
+     * Update the environmental context for adaptive fusion.
+     *
+     * Called by the SensorService whenever new context data is available
+     * (GPS speed update, light sensor reading, etc.).
+     *
+     * In FIXED mode this data is stored but not used for weight computation.
+     * In ADAPTIVE mode it modulates the fusion weights.
+     *
+     * @param context Latest environmental context snapshot
+     */
+    fun setFusionContext(context: FusionContext) {
+        currentContext = context
+    }
+
+    /**
+     * Get the current fusion context (for logging/debugging).
+     */
+    fun getFusionContext(): FusionContext = currentContext
 
     /**
      * Register a new CV detection and attempt fusion with recent sensor events.
@@ -111,6 +152,10 @@ class FusionEngine(
 
     /**
      * Core fusion computation.
+     *
+     * In FIXED mode, uses the base weights directly.
+     * In ADAPTIVE mode, modulates weights via context providers
+     * and normalizes so they always sum to 1.0.
      */
     private fun computeFusion(
         cvConfidence: Float,
@@ -128,11 +173,14 @@ class FusionEngine(
             0f
         }
 
+        // Compute effective weights based on fusion mode
+        val (effectiveAlpha, effectiveBeta, effectiveGamma) = computeEffectiveWeights()
+
         // Weighted fusion score
         val fusedScore = min(1.0f, max(0f,
-            cvWeight * cvConfidence +
-            sensorWeight * sensorConfidence +
-            temporalWeight * temporalBonus
+            effectiveAlpha * cvConfidence +
+            effectiveBeta * sensorConfidence +
+            effectiveGamma * temporalBonus
         ))
 
         // Determine action
@@ -166,13 +214,77 @@ class FusionEngine(
             damageType = damageType,
             detectionSource = detectionSource,
             anomalyEvent = sensorEvent,
-            timestamp = timestamp
+            timestamp = timestamp,
+            effectiveAlpha = effectiveAlpha,
+            effectiveBeta = effectiveBeta,
+            effectiveGamma = effectiveGamma,
+            fusionMode = fusionMode.name
         )
 
-        Log.d(TAG, "Fusion: cv=%.2f sensor=%.2f temporal=%.2f → score=%.3f → %s (%s)"
-            .format(cvConfidence, sensorConfidence, temporalBonus, fusedScore, action, detectionSource))
+        Log.d(TAG, "Fusion[%s]: cv=%.2f sensor=%.2f temporal=%.2f → score=%.3f → %s (%s) [α=%.3f β=%.3f γ=%.3f]"
+            .format(fusionMode, cvConfidence, sensorConfidence, temporalBonus,
+                    fusedScore, action, detectionSource,
+                    effectiveAlpha, effectiveBeta, effectiveGamma))
 
         return result
+    }
+
+    /**
+     * Compute the effective weights based on the current detection/fusion mode.
+     *
+     * Priority order:
+     * 1. [detectionMode] set (Phase E evaluation) → use its fixed weights
+     * 2. [fusionMode] == ADAPTIVE → context-aware adaptive weights
+     * 3. [fusionMode] == FIXED (default) → base weights
+     *
+     * All paths guarantee α + β + γ = 1.0.
+     *
+     * @return Triple of (alpha, beta, gamma) that always sum to 1.0
+     */
+    internal fun computeEffectiveWeights(): Triple<Float, Float, Float> {
+        // Phase E: DetectionMode overrides fusionMode
+        detectionMode?.let { mode ->
+            return when (mode) {
+                DetectionMode.CV_ONLY     -> Triple(1.0f, 0.0f, 0.0f)
+                DetectionMode.SENSOR_ONLY -> Triple(0.0f, 1.0f, 0.0f)
+                DetectionMode.FIXED_FUSION ->
+                    Triple(cvWeight, sensorWeight, temporalWeight)
+                DetectionMode.ADAPTIVE_FUSION ->
+                    computeAdaptiveWeights()
+            }
+        }
+
+        // Standard FusionMode path (no DetectionMode override)
+        return when (fusionMode) {
+            FusionMode.FIXED    -> Triple(cvWeight, sensorWeight, temporalWeight)
+            FusionMode.ADAPTIVE -> computeAdaptiveWeights()
+        }
+    }
+
+    /**
+     * Compute context-modulated adaptive weights and normalize to sum 1.0.
+     * Used by both ADAPTIVE [FusionMode] and ADAPTIVE_FUSION [DetectionMode].
+     */
+    private fun computeAdaptiveWeights(): Triple<Float, Float, Float> {
+        val speedProvider = SpeedContextProvider(currentContext.speedKmh)
+        val lightProvider = LightContextProvider(
+            currentContext.ambientLightLux,
+            currentContext.isNightTime
+        )
+
+        val cvModifier     = speedProvider.getCvModifier()     * lightProvider.getCvModifier()
+        val sensorModifier = speedProvider.getSensorModifier() * lightProvider.getSensorModifier()
+
+        val rawAlpha = cvWeight     * cvModifier
+        val rawBeta  = sensorWeight * sensorModifier
+        val rawGamma = temporalWeight              // Temporal not context-modified
+
+        val total = rawAlpha + rawBeta + rawGamma
+        if (total <= 0f) {
+            Log.w(TAG, "Weight normalization fallback: total=$total")
+            return Triple(cvWeight, sensorWeight, temporalWeight)
+        }
+        return Triple(rawAlpha / total, rawBeta / total, rawGamma / total)
     }
 
     /**
@@ -219,6 +331,7 @@ class FusionEngine(
     fun reset() {
         recentCvDetections.clear()
         recentSensorEvents.clear()
+        currentContext = FusionContext.UNKNOWN
         Log.d(TAG, "FusionEngine reset")
     }
 }

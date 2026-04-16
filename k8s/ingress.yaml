@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: roadguard-ingress
+  namespace: roadguard
+  labels:
+    app.kubernetes.io/part-of: roadguard-system
+  annotations:
+    # Nginx Ingress Controller annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # Rate limiting (anti-DoS)
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    # Request body size (for POST /api/v1/clusters with many reports)
+    nginx.ingress.kubernetes.io/proxy-body-size: "5m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: roadguard.example.com   # Replace with your domain in production
+      http:
+        paths:
+          # ── Analytics API path ─────────────────────────────────────
+          # /api/v1/* → analytics-api Service at :8000
+          # rewrite-target strips /api prefix before forwarding
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: analytics-api
+                port:
+                  number: 8000
+
+          # ── Web Portal (catch-all) ─────────────────────────────────
+          # / → web-portal Service at :80
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: web-portal
+                port:
+                  number: 80
+
+  # Uncomment to enable TLS (requires cert-manager or manual secret)
+  # tls:
+  #   - hosts:
+  #       - roadguard.example.com
+  #     secretName: roadguard-tls-secret

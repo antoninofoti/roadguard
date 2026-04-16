@@ -1,0 +1,136 @@
+<resources>
+    <!-- Identità app -->
+    <string name="app_name">RoadGuard</string>
+    <string name="app_tagline">Sistema di rilevamento anomalie stradali</string>
+
+    <!-- Navigazione / Tab -->
+    <string name="nav_home">Home</string>
+    <string name="nav_map">Mappa</string>
+    <string name="nav_reports">Segnalazioni</string>
+    <string name="nav_analytics">Analisi</string>
+    <string name="nav_operator">Operatore</string>
+    <string name="nav_settings">Impostazioni</string>
+
+    <!-- Stato rilevamento -->
+    <string name="status_scanning">Scansione in corso…</string>
+    <string name="status_anomaly_detected">Anomalia rilevata!</string>
+    <string name="status_no_anomaly">Strada libera</string>
+    <string name="status_initializing">Inizializzazione sensori…</string>
+    <string name="status_camera_error">Fotocamera non disponibile</string>
+    <string name="status_gps_waiting">In attesa del GPS…</string>
+
+    <!-- Azioni rilevamento -->
+    <string name="action_confirm">Conferma</string>
+    <string name="action_dismiss">Ignora</string>
+    <string name="action_report">Segnala anomalia</string>
+    <string name="action_start_detection">Avvia rilevamento</string>
+    <string name="action_stop_detection">Ferma rilevamento</string>
+    <string name="action_export_csv">Esporta log CSV</string>
+    <string name="action_share">Condividi</string>
+    <string name="action_upload">Carica</string>
+    <string name="action_retry">Riprova</string>
+
+    <!-- Tipi di danno -->
+    <string name="damage_pothole">Buca</string>
+    <string name="damage_bump">Superficie irregolare</string>
+    <string name="damage_speed_bump">Dosso artificiale</string>
+    <string name="damage_roughness">Rugosità del manto</string>
+    <string name="damage_crack">Crepa</string>
+    <string name="damage_unknown">Anomalia sconosciuta</string>
+
+    <!-- Modalità di rilevamento (Fase E) -->
+    <string name="mode_cv_only">Solo visione artificiale</string>
+    <string name="mode_sensor_only">Solo sensori IMU</string>
+    <string name="mode_fixed_fusion">Fusione con pesi fissi</string>
+    <string name="mode_adaptive_fusion">Fusione adattiva</string>
+    <string name="mode_description_cv_only">Rilevamento solo tramite fotocamera (YOLOv8)</string>
+    <string name="mode_description_sensor_only">Rilevamento solo tramite sensori inerziali</string>
+    <string name="mode_description_fixed_fusion">Fusione con pesi costanti (α=0.55, β=0.30)</string>
+    <string name="mode_description_adaptive_fusion">Fusione contestuale (si adatta a velocità e luce)</string>
+
+    <!-- Etichette punteggio fusione -->
+    <string name="score_auto_report">Segnalazione automatica</string>
+    <string name="score_prompt_user">Conferma richiesta</string>
+    <string name="score_discarded">Sotto soglia</string>
+    <string name="label_fused_score">Punteggio fusione</string>
+    <string name="label_cv_score">Confidenza visiva</string>
+    <string name="label_sensor_score">Confidenza sensoriale</string>
+
+    <!-- Stato segnalazione -->
+    <string name="report_status_pending">In attesa di revisione</string>
+    <string name="report_status_confirmed">Confermata</string>
+    <string name="report_status_resolved">Risolta</string>
+
+    <!-- Dashboard operatore -->
+    <string name="operator_dashboard_title">Dashboard Operatore</string>
+    <string name="operator_pending_count">%d segnalazioni in attesa</string>
+    <string name="operator_action_confirm">Conferma segnalazione</string>
+    <string name="operator_action_resolve">Segna come risolta</string>
+    <string name="operator_action_reject">Rifiuta</string>
+    <string name="operator_notes_hint">Aggiungi note operative…</string>
+    <string name="operator_filter_status">Filtra per stato</string>
+
+    <!-- Impostazioni -->
+    <string name="settings_title">Impostazioni</string>
+    <string name="settings_detection_mode">Modalità di rilevamento</string>
+    <string name="settings_logging">Abilita log CSV</string>
+    <string name="settings_logging_description">Registra i dati dei sensori in un file CSV per l\'analisi</string>
+    <string name="settings_auto_upload">Caricamento automatico log</string>
+    <string name="settings_auto_upload_description">Carica i log CSV su Firebase al termine di ogni sessione</string>
+    <string name="settings_language">Lingua</string>
+
+    <!-- Logging / CSV -->
+    <string name="logging_started">Log avviato: %s</string>
+    <string name="logging_stopped">Log fermato. %d righe scritte.</string>
+    <string name="logging_upload_success">Log caricato con successo</string>
+    <string name="logging_upload_error">Caricamento fallito: %s</string>
+
+    <!-- Sessione di valutazione -->
+    <string name="eval_session_label">Sessione di valutazione</string>
+    <string name="eval_session_condition_hint">Condizione (es. Giorno+Asciutto)</string>
+    <string name="eval_session_route_hint">Nome percorso (es. Percorso_A)</string>
+    <string name="eval_session_start">Avvia sessione di valutazione</string>
+    <string name="eval_session_stop">Ferma sessione</string>
+    <string name="eval_session_events">%d eventi registrati</string>
+
+    <!-- Permessi -->
+    <string name="permission_camera_rationale">L\'accesso alla fotocamera è necessario per il rilevamento danni stradali tramite YOLOv8.</string>
+    <string name="permission_location_rationale">L\'accesso alla posizione è necessario per taggare le segnalazioni con le coordinate GPS.</string>
+    <string name="permission_storage_rationale">L\'accesso allo storage è necessario per salvare i file CSV di log dei sensori.</string>
+    <string name="permission_denied_info">Alcune funzioni potrebbero essere limitate senza questo permesso.</string>
+
+    <!-- Errori -->
+    <string name="error_generic">Qualcosa è andato storto. Riprova.</string>
+    <string name="error_no_network">Nessuna connessione internet</string>
+    <string name="error_auth_required">Accedi per inviare segnalazioni</string>
+    <string name="error_gps_unavailable">GPS non disponibile. Coordinate non registrate.</string>
+    <string name="error_rate_limited">Invio segnalazioni temporaneamente limitato. Attendi.</string>
+    <string name="error_validation_coords">Coordinate GPS non valide per questa regione</string>
+    <string name="error_validation_score">Punteggio di rilevamento non valido</string>
+
+    <!-- Accessibilità -->
+    <string name="cd_anomaly_icon">Icona anomalia stradale rilevata</string>
+    <string name="cd_map_marker_pothole">Marcatore buca sulla mappa</string>
+    <string name="cd_map_marker_bump">Marcatore dosso sulla mappa</string>
+    <string name="cd_detection_score_bar">Barra confidenza rilevamento, punteggio: %s</string>
+    <string name="cd_start_detection_button">Avvia rilevamento anomalie stradali</string>
+    <string name="cd_stop_detection_button">Ferma rilevamento</string>
+    <string name="cd_operator_confirm_button">Conferma questa segnalazione come anomalia verificata</string>
+
+    <!-- Onboarding (Fase I.2) -->
+    <string name="onboarding_title_1">Benvenuto in RoadGuard</string>
+    <string name="onboarding_body_1">RoadGuard utilizza la fotocamera e i sensori del tuo telefono per rilevare automaticamente i danni stradali mentre guidi.</string>
+    <string name="onboarding_title_2">Come funziona</string>
+    <string name="onboarding_body_2">L\'app combina la visione artificiale (YOLOv8) con accelerometro e giroscopio per un rilevamento più accurato rispetto a ciascuna sorgente separata.</string>
+    <string name="onboarding_title_3">I tuoi dati</string>
+    <string name="onboarding_body_3">I metadati GPS vengono rimossi dalle immagini prima del caricamento. Controlli tu cosa viene segnalato. Conforme al GDPR.</string>
+    <string name="onboarding_skip">Salta</string>
+    <string name="onboarding_next">Avanti</string>
+    <string name="onboarding_done">Inizia</string>
+
+    <!-- Informazioni -->
+    <string name="about_title">Informazioni su RoadGuard</string>
+    <string name="about_version">Versione %s</string>
+    <string name="about_thesis">Tesi Magistrale — Engineering in Computer Science</string>
+    <string name="about_university">Sapienza Università di Roma</string>
+</resources>

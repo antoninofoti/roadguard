@@ -1,0 +1,165 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Functions ────────────────────────────────────────────────
+
+    /** Returns true if the user is authenticated. */
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    /** Returns true if the authenticated user has the given role (stored in claims). */
+    function hasRole(role) {
+      return isAuth() && request.auth.token.get('role', 'citizen') == role;
+    }
+
+    /** Returns true if the user is an operator or admin. */
+    function isOperator() {
+      return hasRole('operator') || hasRole('admin');
+    }
+
+    /** Returns true if the user is an admin. */
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    /** Returns true if the document belongs to the requesting user. */
+    function isOwner(userId) {
+      return isAuth() && request.auth.uid == userId;
+    }
+
+    /**
+     * Validates the structure of a report document (F.1 schema validation).
+     *
+     * Required fields must be present and correctly typed.
+     * Optional fields are allowed to be absent.
+     *
+     * This prevents malformed writes even from authenticated users,
+     * guarding against client bugs and attacker-controlled clients.
+     */
+    function isValidReport(data) {
+      return
+        // Required string fields
+        data.keys().hasAll(['userId', 'status', 'damageType']) &&
+        data.userId is string &&
+        data.status is string &&
+        data.status in ['PENDING', 'CONFIRMED', 'RESOLVED'] &&
+        data.damageType is string &&
+
+        // Score / severity must be numeric and in [0, 1]
+        (!data.keys().hasAny(['fusedScore']) || (data.fusedScore is number && data.fusedScore >= 0 && data.fusedScore <= 1)) &&
+        (!data.keys().hasAny(['severity'])   || (data.severity   is number && data.severity   >= 0 && data.severity   <= 1)) &&
+
+        // Location must be a valid GeoPoint if present
+        (!data.keys().hasAny(['location']) || data.location is latlng) &&
+
+        // userId must match the authenticated user creating the document
+        data.userId == request.auth.uid;
+    }
+
+    // ── Reports Collection ──────────────────────────────────────────────
+
+    match /reports/{reportId} {
+
+      /**
+       * READ: Citizens can only read their own reports.
+       *       Operators and admins can read any report.
+       */
+      allow read: if isAuth() && (
+        isOperator() ||
+        resource.data.userId == request.auth.uid
+      );
+
+      /**
+       * CREATE: Any authenticated user can create a report,
+       *         provided the document structure is valid.
+       *         Status must start as PENDING (users cannot pre-confirm their own reports).
+       */
+      allow create: if isAuth() &&
+        isValidReport(request.resource.data) &&
+        request.resource.data.status == 'PENDING';
+
+      /**
+       * UPDATE:
+       * - Citizens may only update their own reports and only
+       *   non-privileged fields (description, imageUrl).
+       *   They cannot change status, severity, or fusedScore.
+       * - Operators can update status (PENDING → CONFIRMED or RESOLVED)
+       *   and add operator notes.
+       * - Admins can update any field.
+       */
+      allow update: if isAuth() && (
+        isAdmin() ||
+        (isOperator() && onlyUpdatingOperatorFields()) ||
+        (isOwner(resource.data.userId) && onlyUpdatingCitizenFields())
+      );
+
+      /**
+       * DELETE: Only admins can delete reports.
+       *         (Soft-delete via status=RESOLVED preferred.)
+       */
+      allow delete: if isAdmin();
+    }
+
+    /** Fields an operator is allowed to modify (status workflow + notes). */
+    function onlyUpdatingOperatorFields() {
+      let allowed = ['status', 'operatorNotes', 'resolvedAt', 'resolvedBy'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+
+    /** Fields a citizen is allowed to modify after submission. */
+    function onlyUpdatingCitizenFields() {
+      let allowed = ['description', 'imageUrl', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
+    }
+
+    // ── Users Collection ────────────────────────────────────────────────
+
+    match /users/{userId} {
+      /** Users can read and write only their own profile document. */
+      allow read, write: if isOwner(userId);
+
+      /** Admins can read any user profile (for moderation). */
+      allow read: if isAdmin();
+    }
+
+    // ── Sensor Logs Collection ──────────────────────────────────────────
+
+    match /sensorLogs/{logId} {
+      /**
+       * Sensor logs contain raw IMU data — only the owning user and admins
+       * should have access to protect against device fingerprinting.
+       */
+      allow read: if isAuth() && (
+        isAdmin() ||
+        resource.data.userId == request.auth.uid
+      );
+
+      allow create: if isAuth() &&
+        request.resource.data.userId == request.auth.uid;
+
+      allow update, delete: if isAdmin();
+    }
+
+    // ── Evaluation Sessions Collection (Phase E research data) ──────────
+
+    match /evaluationSessions/{sessionId} {
+      /** Only admins and operators can read evaluation session metadata. */
+      allow read: if isOperator();
+
+      /** Any authenticated user with the researcher role can write sessions. */
+      allow create, update: if isAuth() && (
+        isOperator() ||
+        request.auth.token.get('role', '') == 'researcher'
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ── Deny all other paths by default ────────────────────────────────
+    //
+    // Firestore denies access unless a matching allow rule exists.
+    // This comment makes the intent explicit for security auditors.
+  }
+}

@@ -1,0 +1,76 @@
+# ═══════════════════════════════════════════════════════════════════
+# RoadGuard — Docker Compose (Local Development & Demo)
+#
+# Usage:
+#   1. cp .env.compose.example .env.compose
+#   2. Fill in VITE_FIREBASE_* variables
+#   3. docker compose up --build
+#
+# Services:
+#   web-portal     → http://localhost:3000   (React SPA via Nginx)
+#   analytics-api  → http://localhost:8000   (FastAPI + Swagger UI)
+#
+# Networking:
+#   Both services share the 'roadguard' bridge network.
+#   Nginx reverse-proxies /api/* → analytics-api:8000 internally,
+#   so the browser only ever talks to localhost:3000.
+# ═══════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Operator Web Portal ────────────────────────────────────────────
+  web-portal:
+    build:
+      context: ./web-portal
+      dockerfile: Dockerfile
+      args:
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID}
+        VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID}
+        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
+    image: roadguard/web-portal:latest
+    container_name: roadguard-web-portal
+    ports:
+      - "3000:80"
+    depends_on:
+      analytics-api:
+        condition: service_healthy
+    networks:
+      - roadguard
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/health.txt"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Python Analytics Microservice ──────────────────────────────────
+  analytics-api:
+    build:
+      context: ./analytics-api
+      dockerfile: Dockerfile
+    image: roadguard/analytics-api:latest
+    container_name: roadguard-analytics-api
+    ports:
+      - "8000:8000"
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+    networks:
+      - roadguard
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+# ── Shared Bridge Network ──────────────────────────────────────────
+networks:
+  roadguard:
+    driver: bridge
+    name: roadguard-net

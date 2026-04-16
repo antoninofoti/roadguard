@@ -1,0 +1,6 @@
+# RoadGuard Analytics API dependencies
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+httpx==0.28.1          # for future outbound calls
+python-dotenv==1.0.1

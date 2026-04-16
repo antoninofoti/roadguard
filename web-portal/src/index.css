@@ -1,0 +1,176 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* ── Design Tokens ─────────────────────────────────────────── */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Dark glassmorphism palette */
+  --color-surface-900: #0b0f1a;
+  --color-surface-800: #111827;
+  --color-surface-700: #1e2a3a;
+  --color-surface-600: #2a3a4e;
+  --color-surface-500: #3b4f6b;
+
+  /* Accent colors */
+  --color-accent-primary: #22d3ee;
+  --color-accent-secondary: #34d399;
+  --color-accent-warning: #f59e0b;
+  --color-accent-danger: #ef4444;
+
+  /* Severity palette */
+  --color-severity-low: #22c55e;
+  --color-severity-medium: #eab308;
+  --color-severity-high: #f97316;
+  --color-severity-critical: #ef4444;
+
+  /* Status palette */
+  --color-status-pending: #f59e0b;
+  --color-status-confirmed: #3b82f6;
+  --color-status-rejected: #ef4444;
+  --color-status-resolved: #22c55e;
+
+  /* Glass effect */
+  --color-glass-bg: rgba(17, 24, 39, 0.8);
+  --color-glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Base Styles ───────────────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface-900);
+  color: #e2e8f0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── Glass Card ────────────────────────────────────────────── */
+.glass-card {
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 12px;
+}
+
+/* ── Scrollbar Styling ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Leaflet Overrides (dark theme) ────────────────────────── */
+.leaflet-container {
+  background: var(--color-surface-900) !important;
+  border-radius: 12px;
+  font-family: var(--font-sans) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--color-surface-800) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid var(--color-glass-border) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--color-surface-800) !important;
+  border: 1px solid var(--color-glass-border) !important;
+}
+
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+}
+
+.leaflet-control-zoom a {
+  background: var(--color-surface-800) !important;
+  color: #e2e8f0 !important;
+  border-color: var(--color-glass-border) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--color-surface-700) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(11, 15, 26, 0.85) !important;
+  color: #64748b !important;
+}
+
+.leaflet-control-attribution a {
+  color: #94a3b8 !important;
+}
+
+/* ── Marker Cluster Overrides ──────────────────────────────── */
+.marker-cluster div {
+  background: rgba(34, 211, 238, 0.2) !important;
+  color: #22d3ee !important;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.marker-cluster {
+  background: rgba(34, 211, 238, 0.1) !important;
+}
+
+/* ── Animations ────────────────────────────────────────────── */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.6);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
