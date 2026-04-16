@@ -72,13 +72,19 @@ jobs:
 
       # ── Detekt Static Analysis ───────────────────────────────
       - name: Run Detekt
-        run: ./gradlew detekt --no-daemon
-        continue-on-error: true  # Don't fail CI on first run; remove once baseline is clean
+        shell: bash
+        run: |
+          ./gradlew detekt --no-daemon || {
+            echo "::warning::Detekt found issues. Report uploaded as artifact; CI continues by design."
+          }
 
       # ── Android Lint ─────────────────────────────────────────
       - name: Run Android Lint
-        run: ./gradlew lint --no-daemon
-        continue-on-error: true  # Lint warnings should not block CI initially
+        shell: bash
+        run: |
+          ./gradlew lint --no-daemon || {
+            echo "::warning::Lint found issues. Report uploaded as artifact; CI continues by design."
+          }
 
       # ── Build Debug APK ──────────────────────────────────────
       - name: Build debug APK
@@ -106,7 +112,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: lint-report
-          path: app/build/reports/lint-results-debug.html
+          path: |
+            app/build/reports/lint-results-debug.html
+            sdk/build/reports/lint-results-debug.html
           retention-days: 14
 
       - name: Upload Detekt report
