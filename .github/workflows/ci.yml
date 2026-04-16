@@ -9,10 +9,6 @@ on:
 permissions:
   contents: read
 
-env:
-  # Opt-in early to Node 24 for JavaScript-based GitHub Actions.
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     name: Build, Test & Analyze
@@ -21,11 +17,11 @@ jobs:
     steps:
       # ── Checkout ──────────────────────────────────────────────
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # ── JDK Setup ────────────────────────────────────────────
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -60,7 +56,7 @@ jobs:
 
       # ── Gradle Cache ─────────────────────────────────────────
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # ── Make gradlew executable ──────────────────────────────
       - name: Grant execute permission for gradlew
@@ -97,7 +93,7 @@ jobs:
       # ── Upload Artifacts ─────────────────────────────────────
       - name: Upload JaCoCo coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-coverage-report
           path: app/build/reports/jacoco/jacocoTestReport/html/
@@ -105,7 +101,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: app/build/reports/tests/
@@ -113,7 +109,7 @@ jobs:
 
       - name: Upload lint report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lint-report
           path: |
@@ -123,7 +119,7 @@ jobs:
 
       - name: Upload Detekt report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: detekt-report
           path: app/build/reports/detekt/
@@ -131,7 +127,7 @@ jobs:
 
       - name: Upload debug APK
         if: success()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
