@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Opt-in early to Node 24 for JavaScript-based GitHub Actions.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     name: Build, Test & Analyze
