@@ -18,6 +18,24 @@
 
 services:
 
+  # ── Validation Tooling (npm/npx in container) ─────────────────────
+  tooling:
+    build:
+      context: .
+      dockerfile: docker/tooling/Dockerfile
+    image: roadguard/tooling:latest
+    working_dir: /workspace
+    entrypoint: ["/bin/bash", "/workspace/scripts/docker_tooling.sh"]
+    volumes:
+      - ./:/workspace
+      - roadguard-web-node-modules:/workspace/web-portal/node_modules
+      - roadguard-npm-cache:/root/.npm
+      - roadguard-firebase-cache:/root/.cache/firebase
+    networks:
+      - roadguard
+    profiles:
+      - tooling
+
   # ── Operator Web Portal ────────────────────────────────────────────
   web-portal:
     build:
@@ -74,3 +92,8 @@ networks:
   roadguard:
     driver: bridge
     name: roadguard-net
+
+volumes:
+  roadguard-web-node-modules:
+  roadguard-npm-cache:
+  roadguard-firebase-cache:

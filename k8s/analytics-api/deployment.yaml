@@ -25,14 +25,20 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: analytics-api
           image: roadguard/analytics-api:latest
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
-            - containerPort: 8000
+            - name: http
+              containerPort: 8000
               protocol: TCP
           env:
             # Only allow requests from the web-portal Service (internal DNS)
@@ -50,7 +56,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: http
             initialDelaySeconds: 15
             periodSeconds: 30
             failureThreshold: 3
@@ -58,7 +64,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: 8000
+              port: http
             initialDelaySeconds: 10
             periodSeconds: 10
             failureThreshold: 2
