@@ -115,6 +115,36 @@ class FusionEngineTest {
         assertEquals(expected, result.fusedScore, 0.05f)
     }
 
+    @Test
+    fun `epoch-millis sensor timestamp correlates with CV detection`() {
+        val sensorEvent = createAnomalyEvent(
+            confidence = 0.9f,
+            type = AnomalyType.POTHOLE,
+            timestamp = System.currentTimeMillis()
+        )
+        engine.onSensorAnomaly(sensorEvent)
+
+        val result = engine.onCvDetection(confidence = 0.9f, label = "pothole")
+
+        assertEquals("DUAL_CONFIRMED", result.detectionSource)
+        assertEquals(1.0f, result.temporalBonus, 0.001f)
+    }
+
+    @Test
+    fun `legacy monotonic sensor timestamp still correlates with CV detection`() {
+        val sensorEvent = createAnomalyEvent(
+            confidence = 0.9f,
+            type = AnomalyType.POTHOLE,
+            timestamp = System.nanoTime()
+        )
+        engine.onSensorAnomaly(sensorEvent)
+
+        val result = engine.onCvDetection(confidence = 0.9f, label = "pothole")
+
+        assertEquals("DUAL_CONFIRMED", result.detectionSource)
+        assertEquals(1.0f, result.temporalBonus, 0.001f)
+    }
+
     // ========== Type and source classification ==========
 
     @Test
@@ -155,13 +185,14 @@ class FusionEngineTest {
     private fun createAnomalyEvent(
         confidence: Float,
         type: AnomalyType,
-        severity: Float = 0.5f
+        severity: Float = 0.5f,
+        timestamp: Long = System.nanoTime()
     ): AnomalyEvent {
         return AnomalyEvent(
             type = type,
             severity = severity,
             confidence = confidence,
-            timestamp = System.nanoTime(),
+            timestamp = timestamp,
             accelPeak = 15.0f,
             gyroPeak = 1.5f,
             location = null

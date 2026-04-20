@@ -157,4 +157,17 @@ class NativeKalmanFilterTest {
 
         native.close()
     }
+
+    @Test
+    fun `native wrapper falls back safely when library unavailable`() {
+        if (NativeKalmanFilter.isAvailable) return
+
+        val filter = NativeKalmanFilter(q = 0.01f, r = 0.5f)
+        val magnitude = filter.updateAndGetMagnitude(3.0f, 4.0f, 0.0f)
+
+        assertFalse("Fallback should disable native backend", filter.isUsingNative())
+        assertTrue("Fallback should still produce a valid magnitude", magnitude > 0f)
+
+        filter.close()
+    }
 }

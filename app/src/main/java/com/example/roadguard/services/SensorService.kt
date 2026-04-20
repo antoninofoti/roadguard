@@ -17,7 +17,7 @@ import com.example.roadguard.detection.context.LightContextProvider
 import com.example.roadguard.repository.ReportRepository
 import com.example.roadguard.sensor.AnomalyDetector
 import com.example.roadguard.sensor.AnomalyEvent
-import com.example.roadguard.sensor.KalmanFilter3D
+import com.example.roadguard.sensor.NativeKalmanFilter
 import com.example.roadguard.sensor.SensorDataPoint
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -88,9 +88,10 @@ class SensorService : Service(), SensorEventListener {
     private lateinit var locationCallback: LocationCallback
     private var currentLocation: Location? = null
 
-    // Kalman filters
-    private val accelKalman = KalmanFilter3D(q = ACCEL_Q, r = ACCEL_R)
-    private val gyroKalman = KalmanFilter3D(q = GYRO_Q, r = GYRO_R)
+    // Kalman filters (native JNI when available, Kotlin fallback otherwise)
+    private val accelKalman = NativeKalmanFilter(q = ACCEL_Q, r = ACCEL_R)
+    private val gyroKalman = NativeKalmanFilter(q = GYRO_Q, r = GYRO_R)
+    private var nativeKalmanActive = false
 
     // Anomaly detector
     private val anomalyDetector = AnomalyDetector(
@@ -168,6 +169,12 @@ class SensorService : Service(), SensorEventListener {
         }
 
         startLocationUpdates()
+        nativeKalmanActive = accelKalman.isUsingNative() && gyroKalman.isUsingNative()
+        if (nativeKalmanActive) {
+            Log.i(TAG, "Kalman backend: native JNI")
+        } else {
+            Log.w(TAG, "Kalman backend: Kotlin fallback (native unavailable)")
+        }
         Log.d(TAG, "SensorService started with Kalman filtering and anomaly detection")
     }
 
@@ -176,6 +183,8 @@ class SensorService : Service(), SensorEventListener {
         sensorManager.unregisterListener(this)
         stopLocationUpdates()
         stopLogging()
+        accelKalman.close()
+        gyroKalman.close()
         Log.d(TAG, "SensorService stopped")
     }
 
@@ -231,6 +240,11 @@ class SensorService : Service(), SensorEventListener {
         val filteredGyroMag = gyroKalman.updateAndGetMagnitude(
             latestGyro[0], latestGyro[1], latestGyro[2]
         )
+        val usingNativeNow = accelKalman.isUsingNative() && gyroKalman.isUsingNative()
+        if (nativeKalmanActive && !usingNativeNow) {
+            nativeKalmanActive = false
+            Log.w(TAG, "Native Kalman path disabled at runtime, switched to Kotlin fallback")
+        }
 
         // Step 2: Create data point and add to window
         val dataPoint = SensorDataPoint(
@@ -263,7 +277,11 @@ class SensorService : Service(), SensorEventListener {
             val geoPoint = currentLocation?.let {
                 GeoPoint(it.latitude, it.longitude)
             }
-            val locatedEvent = event.copy(location = geoPoint)
+            // Normalize anomaly timestamp to epoch ms for fusion with CV events.
+            val locatedEvent = event.copy(
+                timestamp = System.currentTimeMillis(),
+                location = geoPoint
+            )
 
             Log.d(TAG, "Anomaly detected: ${locatedEvent.type}, " +
                     "severity=${locatedEvent.severity}, " +
