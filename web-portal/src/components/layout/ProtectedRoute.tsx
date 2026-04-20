@@ -4,7 +4,7 @@
  */
 
 import { Navigate } from 'react-router-dom';
-import { useAuthContext } from '../../context/AuthContext';
+import { useAuthContext } from '../../context/authContext';
 import { Shield } from 'lucide-react';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {

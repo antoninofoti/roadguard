@@ -3,7 +3,7 @@
  */
 
 import { LogOut, Shield, ShieldCheck } from 'lucide-react';
-import { useAuthContext } from '../../context/AuthContext';
+import { useAuthContext } from '../../context/authContext';
 
 export function Header() {
   const { user, role, isAdmin, signOut } = useAuthContext();

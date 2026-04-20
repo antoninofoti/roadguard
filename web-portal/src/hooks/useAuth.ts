@@ -15,6 +15,31 @@ import {
 import { auth } from '../config/firebase';
 import type { UserRole } from '../types/report';
 
+const emulatorAuthMode = (import.meta.env.VITE_AUTH_MODE ?? 'emulator').toLowerCase() === 'emulator';
+const emulatorOperatorEmailsRaw: string =
+  import.meta.env.VITE_EMULATOR_OPERATOR_EMAILS || 'operator@roadguard.it';
+const emulatorOperatorEmails = new Set(
+  emulatorOperatorEmailsRaw
+    .split(',')
+    .map((email: string) => email.trim().toLowerCase())
+    .filter((email: string) => email.length > 0),
+);
+
+function resolveRole(firebaseUser: User, claimRole: unknown): UserRole {
+  if (claimRole === 'admin' || claimRole === 'operator' || claimRole === 'user') {
+    return claimRole;
+  }
+
+  if (emulatorAuthMode) {
+    const normalizedEmail = (firebaseUser.email || '').toLowerCase();
+    if (normalizedEmail && emulatorOperatorEmails.has(normalizedEmail)) {
+      return 'operator';
+    }
+  }
+
+  return 'user';
+}
+
 interface AuthState {
   user: User | null;
   role: UserRole;
@@ -39,8 +64,7 @@ export function useAuth(): AuthState {
         // Extract role from custom claims
         try {
           const tokenResult = await firebaseUser.getIdTokenResult();
-          const claimRole = (tokenResult.claims.role as UserRole) || 'user';
-          setRole(claimRole);
+          setRole(resolveRole(firebaseUser, tokenResult.claims.role));
         } catch {
           setRole('user');
         }
@@ -60,8 +84,7 @@ export function useAuth(): AuthState {
     try {
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const tokenResult = await credential.user.getIdTokenResult();
-      const claimRole = (tokenResult.claims.role as UserRole) || 'user';
-      setRole(claimRole);
+      setRole(resolveRole(credential.user, tokenResult.claims.role));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
       setError(message);

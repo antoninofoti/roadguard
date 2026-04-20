@@ -10,15 +10,25 @@
  */
 
 import { useState, useCallback } from 'react';
+import { lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Menu, List, MapIcon } from 'lucide-react';
 import { Header } from '../components/layout/Header';
 import { Sidebar } from '../components/layout/Sidebar';
-import { ReportMap } from '../components/map/ReportMap';
 import { ReportList } from '../components/reports/ReportList';
-import { ReportDetail } from '../components/reports/ReportDetail';
 import { useReports } from '../hooks/useReports';
 import { DEFAULT_FILTERS, type Report, type ReportFilters } from '../types/report';
+
+const ReportMap = lazy(() =>
+  import('../components/map/ReportMap').then((module) => ({
+    default: module.ReportMap,
+  }))
+);
+const ReportDetail = lazy(() =>
+  import('../components/reports/ReportDetail').then((module) => ({
+    default: module.ReportDetail,
+  }))
+);
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
@@ -111,11 +121,19 @@ export function DashboardPage() {
                 layout
               >
                 <div className="w-full h-full rounded-xl overflow-hidden border border-[var(--color-glass-border)] shadow-lg">
-                  <ReportMap
-                    reports={reports}
-                    selectedId={selectedReport?.id ?? null}
-                    onSelect={handleSelectReport}
-                  />
+                  <Suspense
+                    fallback={
+                      <div className="w-full h-full flex items-center justify-center bg-[var(--color-surface-900)] text-slate-400 text-sm">
+                        Loading map module...
+                      </div>
+                    }
+                  >
+                    <ReportMap
+                      reports={reports}
+                      selectedId={selectedReport?.id ?? null}
+                      onSelect={handleSelectReport}
+                    />
+                  </Suspense>
                 </div>
               </motion.div>
 
@@ -142,10 +160,9 @@ export function DashboardPage() {
         </main>
 
         {/* Detail panel (slides in from right) */}
-        <ReportDetail
-          report={selectedReport}
-          onClose={handleCloseDetail}
-        />
+        <Suspense fallback={null}>
+          <ReportDetail report={selectedReport} onClose={handleCloseDetail} />
+        </Suspense>
       </div>
     </div>
   );
