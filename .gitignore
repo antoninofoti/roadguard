@@ -1,6 +1,6 @@
+## IDE and OS
 *.iml
 .gradle
-/local.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -8,14 +8,23 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
+
+## Android and build artifacts
 /build
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+/sdk/build/
+
+## Documentation workspace (current project policy)
 *.pdf
 *.md
-
-# Project exclude paths
-/sdk/build/
 /docs/
+
+## Python caches
+__pycache__/
+*.pyc
+
+## Logs
+*.log
