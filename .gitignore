@@ -20,7 +20,15 @@ local.properties
 ## Documentation workspace (current project policy)
 *.pdf
 *.md
-/docs/
+/docs/*
+!docs/PRELIMINARY_PREFLIGHT_REPORT.md
+!docs/thesis_latex/
+docs/thesis_latex/*
+!docs/thesis_latex/chapters/
+docs/thesis_latex/chapters/*
+!docs/thesis_latex/chapters/10_testing.tex
+!docs/thesis_latex/chapters/12_conclusion.tex
+!docs/thesis_latex/chapters/D_methodological_protocol.tex
 
 ## Python caches
 __pycache__/

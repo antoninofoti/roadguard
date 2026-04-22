@@ -1,16 +1,19 @@
 # ═══════════════════════════════════════════════════════════════════
 # RoadGuard Web Portal — Multi-stage Dockerfile
 #
-# Stage 1 (builder): npm ci + vite build → static assets in /app/dist
-# Stage 2 (runtime): nginx:alpine serves the static SPA
+# Stage 1 (builder): Wolfi + Node/npm build static assets in /app/dist
+# Stage 2 (runtime): unprivileged Nginx serves the static SPA
 #
 # Result: ~25MB final image (vs ~1GB with a full Node image)
 # ═══════════════════════════════════════════════════════════════════
 
 # ── Stage 1: Node builder ────────────────────────────────────────────
-FROM node:22-alpine AS builder
+FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 
 WORKDIR /app
+
+# Hardened Wolfi base with explicit Node toolchain package versions.
+RUN apk add --no-cache nodejs-24 npm
 
 # Copy lock files first (maximises Docker layer caching)
 COPY package.json package-lock.json ./
@@ -21,20 +24,11 @@ RUN npm ci
 # Copy source and build
 COPY . .
 
-# Requires a .env file (or build args) with VITE_FIREBASE_* variables.
-# If running in CI, pass them as: --build-arg VITE_FIREBASE_API_KEY=...
-ARG VITE_FIREBASE_API_KEY
-ARG VITE_FIREBASE_AUTH_DOMAIN
-ARG VITE_FIREBASE_PROJECT_ID
-ARG VITE_FIREBASE_STORAGE_BUCKET
-ARG VITE_FIREBASE_MESSAGING_SENDER_ID
-ARG VITE_FIREBASE_APP_ID
-
 RUN npm run build
 
 
 # ── Stage 2: Nginx runtime ──────────────────────────────────────────
-FROM nginx:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.30.0-alpine3.23-slim AS runtime
 
 LABEL org.opencontainers.image.title="RoadGuard Web Portal"
 LABEL org.opencontainers.image.description="React SPA served by Nginx for the RoadGuard operator dashboard"
@@ -49,10 +43,10 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Remove default nginx config
 RUN rm -f /etc/nginx/conf.d/default.conf.bak
 
-EXPOSE 80
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -qO- http://localhost/health.txt || exit 1
+    CMD wget -qO- http://localhost:8080/health.txt || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]

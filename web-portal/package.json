@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "auth:emulator:test": "npx -y firebase-tools --config ../firebase.json emulators:exec --project roadguard-demo --only auth,firestore \"node scripts/auth-emulator-login-check.mjs && node scripts/rbac-rules-check.mjs\"",
+    "auth:emulator:test:repeat": "npm run auth:emulator:test && npm run auth:emulator:test"
   },
   "dependencies": {
     "firebase": "^12.12.0",

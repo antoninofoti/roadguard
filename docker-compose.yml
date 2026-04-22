@@ -33,7 +33,7 @@ services:
     image: roadguard/web-portal:latest
     container_name: roadguard-web-portal
     ports:
-      - "3000:80"
+      - "3000:8080"
     depends_on:
       analytics-api:
         condition: service_healthy
@@ -41,7 +41,7 @@ services:
       - roadguard
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost/health.txt"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health.txt"]
       interval: 30s
       timeout: 5s
       retries: 3

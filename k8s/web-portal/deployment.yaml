@@ -25,16 +25,17 @@ spec:
       labels:
         app: web-portal
     spec:
-      # Security context: run as non-root (nginx default user)
+      # Security context: run as non-root with unprivileged nginx image.
       securityContext:
-        runAsNonRoot: false   # nginx needs root to bind port 80; use rootless nginx in prod
+        runAsNonRoot: true
+        runAsUser: 101
         fsGroup: 101
       containers:
         - name: web-portal
           image: roadguard/web-portal:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               protocol: TCP
 
           # Resource limits: prevent the container from starving other pods
@@ -50,7 +51,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health.txt
-              port: 80
+              port: 8080
             initialDelaySeconds: 10
             periodSeconds: 30
             failureThreshold: 3
@@ -59,7 +60,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health.txt
-              port: 80
+              port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
             failureThreshold: 2
