@@ -1,6 +1,7 @@
 package com.example.roadguard
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -81,9 +82,16 @@ class MainActivity : ComponentActivity() {
             ) {
                 // FCM SDK (and your app) can post notifications.
             } else if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
-                // TODO: Display an educational UI explaining to the user the features that will be enabled
-                //       by them granting the POST_NOTIFICATION permission. This UI should provide the user
-                //       with two choices: "Accept" and "No thanks".
+                AlertDialog.Builder(this)
+                    .setTitle("Enable notifications")
+                    .setMessage(
+                        "RoadGuard uses notifications to alert you about report status updates and important system events."
+                    )
+                    .setPositiveButton("Accept") { _, _ ->
+                        requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                    .setNegativeButton("No thanks", null)
+                    .show()
             } else {
                 // Directly ask for the permission.
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)

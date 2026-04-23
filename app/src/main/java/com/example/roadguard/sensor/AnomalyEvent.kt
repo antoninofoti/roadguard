@@ -22,7 +22,7 @@ data class AnomalyEvent(
     val type: AnomalyType,
     val severity: Float,        // 0.0 - 1.0 normalized severity
     val confidence: Float,      // 0.0 - 1.0 detection confidence
-    val timestamp: Long,        // System.nanoTime() when detected
+    val timestamp: Long,        // Epoch ms used for cross-modal temporal correlation
     val accelPeak: Float,       // Peak accelerometer magnitude during event
     val gyroPeak: Float,        // Peak gyroscope magnitude during event
     val location: GeoPoint? = null  // GPS location at time of detection

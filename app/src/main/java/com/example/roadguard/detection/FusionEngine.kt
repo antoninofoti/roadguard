@@ -296,14 +296,30 @@ class FusionEngine(
 
         return recentSensorEvents
             .filter { event ->
-                // Convert nanoTime to approximate ms offset
-                // Since sensor timestamps use System.nanoTime() and our timestampMs uses
-                // System.currentTimeMillis(), we approximate with the most recent events
-                val eventAgeMs = (System.nanoTime() - event.timestamp) / 1_000_000
-                val eventApproxMs = System.currentTimeMillis() - eventAgeMs
-                eventApproxMs in windowStart..windowEnd
+                normalizeEventTimestampMs(event.timestamp) in windowStart..windowEnd
             }
             .maxByOrNull { it.confidence }
+    }
+
+    /**
+     * Normalize sensor event timestamps to epoch milliseconds.
+     *
+     * Current pipeline emits sensor events in epoch ms. Older events may still
+     * carry monotonic nanoseconds, so we retain a compatibility path.
+     */
+    private fun normalizeEventTimestampMs(rawTimestamp: Long): Long {
+        val epochUpperBoundMs = 10_000_000_000_000L
+        if (rawTimestamp < epochUpperBoundMs) {
+            return rawTimestamp
+        }
+
+        val nowNano = System.nanoTime()
+        if (rawTimestamp > nowNano) {
+            return System.currentTimeMillis()
+        }
+
+        val eventAgeMs = (nowNano - rawTimestamp) / 1_000_000
+        return System.currentTimeMillis() - eventAgeMs
     }
 
     /**

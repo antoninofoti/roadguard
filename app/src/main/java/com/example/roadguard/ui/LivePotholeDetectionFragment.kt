@@ -1,6 +1,7 @@
 package com.example.roadguard.ui
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -37,6 +38,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.example.roadguard.R
 import com.example.roadguard.detection.FusionAction
 import com.example.roadguard.detection.FusionEngine
+import com.example.roadguard.detection.FusionMode
 import com.example.roadguard.detection.FusionResult
 import com.example.roadguard.model.DetectionSource
 import com.example.roadguard.repository.ReportRepository
@@ -73,6 +75,7 @@ class LivePotholeDetectionFragment : Fragment() {
         private const val TAG = "LivePotholeDetection"
         private const val ANALYSIS_INTERVAL_MS = 350L
         private const val REPORT_COOLDOWN_MS = 5000L
+        private const val PROMPT_COOLDOWN_MS = 3000L
     }
 
     // Camera
@@ -83,9 +86,11 @@ class LivePotholeDetectionFragment : Fragment() {
     private var lastAnalysisTime = 0L
 
     // Fusion Engine
-    private val fusionEngine = FusionEngine()
+    private val fusionEngine = FusionEngine(fusionMode = FusionMode.ADAPTIVE)
     private val reportRepository = ReportRepository()
     private var lastReportTime = 0L
+    private var lastPromptTime = 0L
+    private var activePromptDialog: AlertDialog? = null
 
     // Sensor service binding
     private var sensorService: SensorService? = null
@@ -138,7 +143,9 @@ class LivePotholeDetectionFragment : Fragment() {
                 handleSensorAnomaly(event)
             }
 
-            Log.d(TAG, "SensorService bound, anomaly listener registered")
+            syncFusionContextFromService()
+
+            Log.d(TAG, "SensorService bound, anomaly listener registered (mode=${fusionEngine.fusionMode})")
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
@@ -278,6 +285,7 @@ class LivePotholeDetectionFragment : Fragment() {
      */
     private fun handleCvDetection(bitmap: Bitmap, confidence: Float) {
         lastCapturedBitmap = bitmap
+        syncFusionContextFromService()
 
         val result = fusionEngine.onCvDetection(confidence, "pothole")
         processFusionResult(result, bitmap)
@@ -288,6 +296,7 @@ class LivePotholeDetectionFragment : Fragment() {
      * Runs on the sensor thread — dispatch UI updates to main thread.
      */
     private fun handleSensorAnomaly(event: AnomalyEvent) {
+        syncFusionContextFromService()
         val result = fusionEngine.onSensorAnomaly(event)
 
         requireActivity().runOnUiThread {
@@ -316,19 +325,43 @@ class LivePotholeDetectionFragment : Fragment() {
             }
             FusionAction.PROMPT_USER -> {
                 Log.d(TAG, "PROMPT_USER: fused=${result.fusedScore}")
-                // For now, show a toast; in future, show a confirmation dialog
-                Toast.makeText(
-                    requireContext(),
-                    "Road damage detected (%.0f%%) - Confirm?".format(result.fusedScore * 100),
-                    Toast.LENGTH_SHORT
-                ).show()
-                // Auto-confirm for now (user can reject from operator dashboard)
-                tryCreateFusionReport(bitmap, result)
+                promptUserForReport(result, bitmap)
             }
             FusionAction.DISCARD -> {
                 // Low confidence — do nothing
             }
         }
+    }
+
+    private fun promptUserForReport(result: FusionResult, bitmap: Bitmap?) {
+        if (!isAdded) return
+        if (activePromptDialog?.isShowing == true) return
+
+        val now = System.currentTimeMillis()
+        if (now - lastPromptTime < PROMPT_COOLDOWN_MS) {
+            Log.d(TAG, "Prompt skipped: cooldown active")
+            return
+        }
+        lastPromptTime = now
+
+        val scorePct = (result.fusedScore * 100).toInt()
+        activePromptDialog = AlertDialog.Builder(requireContext())
+            .setTitle("Confirm road damage report")
+            .setMessage(
+                "Fusion score: $scorePct%\n" +
+                    "Source: ${result.detectionSource}\n\n" +
+                    "Send this report to operators?"
+            )
+            .setPositiveButton("Send report") { _, _ ->
+                tryCreateFusionReport(bitmap, result)
+            }
+            .setNegativeButton("Dismiss") { _, _ ->
+                Log.d(TAG, "PROMPT_USER dismissed by user")
+            }
+            .setOnDismissListener {
+                activePromptDialog = null
+            }
+            .show()
     }
 
     /**
@@ -341,9 +374,19 @@ class LivePotholeDetectionFragment : Fragment() {
             Log.d(TAG, "Report skipped: cooldown active")
             return
         }
-        lastReportTime = now
 
         val reportBitmap = bitmap ?: Bitmap.createBitmap(10, 10, Bitmap.Config.ARGB_8888)
+        val location = getCurrentLocationGeoPoint() ?: result.anomalyEvent?.location
+        if (location == null) {
+            Log.w(TAG, "Report skipped: no valid GPS location available")
+            Toast.makeText(
+                requireContext(),
+                "Location unavailable: report not sent",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+        lastReportTime = now
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -354,7 +397,6 @@ class LivePotholeDetectionFragment : Fragment() {
                     fos.flush()
                 }
                 val uri = Uri.fromFile(file)
-                val location = getCurrentLocationGeoPoint() ?: GeoPoint(0.0, 0.0)
 
                 // Use fusion-aware report creation
                 val reportResult = reportRepository.addFusionReport(
@@ -391,6 +433,11 @@ class LivePotholeDetectionFragment : Fragment() {
                 Log.e(TAG, "Error creating fusion report", e)
             }
         }
+    }
+
+    private fun syncFusionContextFromService() {
+        val context = sensorService?.getCurrentFusionContext() ?: return
+        fusionEngine.setFusionContext(context)
     }
 
     // ========== Camera ==========
@@ -550,6 +597,8 @@ class LivePotholeDetectionFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        activePromptDialog?.dismiss()
+        activePromptDialog = null
         cameraExecutor.shutdown()
         if (serviceBound) {
             sensorService?.setOnAnomalyDetectedListener(null)

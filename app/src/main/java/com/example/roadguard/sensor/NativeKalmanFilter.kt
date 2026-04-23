@@ -27,13 +27,23 @@ class NativeKalmanFilter(
     private val r: Float = 0.5f,
 ) : AutoCloseable {
 
+    private val kotlinFallback = KalmanFilter3D(q = q, r = r)
+    private var nativeEnabled = isAvailable
+
     // Handles are 0 (invalid) when native lib is not available
-    private val handleX: Long = if (isAvailable) nativeCreate(q, r) else 0L
-    private val handleY: Long = if (isAvailable) nativeCreate(q, r) else 0L
-    private val handleZ: Long = if (isAvailable) nativeCreate(q, r) else 0L
+    private val handleX: Long = if (nativeEnabled) nativeCreate(q, r) else 0L
+    private val handleY: Long = if (nativeEnabled) nativeCreate(q, r) else 0L
+    private val handleZ: Long = if (nativeEnabled) nativeCreate(q, r) else 0L
 
     /** Reusable buffer to avoid FloatArray allocation per call. */
     private val resultBuffer = FloatArray(3)
+
+    init {
+        if (nativeEnabled && (handleX == 0L || handleY == 0L || handleZ == 0L)) {
+            nativeEnabled = false
+            releaseHandlesSilently()
+        }
+    }
 
     /**
      * Filter a 3-axis IMU reading.
@@ -42,8 +52,17 @@ class NativeKalmanFilter(
      * @return Triple of (filteredX, filteredY, filteredZ)
      */
     fun update(x: Float, y: Float, z: Float): Triple<Float, Float, Float> {
-        nativeUpdate3D(handleX, handleY, handleZ, x, y, z, resultBuffer)
-        return Triple(resultBuffer[0], resultBuffer[1], resultBuffer[2])
+        if (!nativeEnabled) {
+            return kotlinFallback.update(x, y, z)
+        }
+
+        return try {
+            nativeUpdate3D(handleX, handleY, handleZ, x, y, z, resultBuffer)
+            Triple(resultBuffer[0], resultBuffer[1], resultBuffer[2])
+        } catch (_: UnsatisfiedLinkError) {
+            nativeEnabled = false
+            kotlinFallback.update(x, y, z)
+        }
     }
 
     /**
@@ -53,9 +72,18 @@ class NativeKalmanFilter(
      * @return sqrt(fx² + fy² + fz²)
      */
     fun updateAndGetMagnitude(x: Float, y: Float, z: Float): Float {
-        nativeUpdate3D(handleX, handleY, handleZ, x, y, z, resultBuffer)
-        val fx = resultBuffer[0]; val fy = resultBuffer[1]; val fz = resultBuffer[2]
-        return sqrt(fx * fx + fy * fy + fz * fz)
+        if (!nativeEnabled) {
+            return kotlinFallback.updateAndGetMagnitude(x, y, z)
+        }
+
+        return try {
+            nativeUpdate3D(handleX, handleY, handleZ, x, y, z, resultBuffer)
+            val fx = resultBuffer[0]; val fy = resultBuffer[1]; val fz = resultBuffer[2]
+            sqrt(fx * fx + fy * fy + fz * fz)
+        } catch (_: UnsatisfiedLinkError) {
+            nativeEnabled = false
+            kotlinFallback.updateAndGetMagnitude(x, y, z)
+        }
     }
 
     /**
@@ -63,9 +91,18 @@ class NativeKalmanFilter(
      * Call this when restarting a measurement session.
      */
     fun reset() {
-        nativeReset(handleX)
-        nativeReset(handleY)
-        nativeReset(handleZ)
+        kotlinFallback.reset()
+        if (!nativeEnabled) {
+            return
+        }
+
+        try {
+            nativeReset(handleX)
+            nativeReset(handleY)
+            nativeReset(handleZ)
+        } catch (_: UnsatisfiedLinkError) {
+            nativeEnabled = false
+        }
     }
 
     /**
@@ -73,9 +110,23 @@ class NativeKalmanFilter(
      * After calling this, any further [update]/[reset] calls are undefined.
      */
     override fun close() {
-        nativeDestroy(handleX)
-        nativeDestroy(handleY)
-        nativeDestroy(handleZ)
+        releaseHandlesSilently()
+        nativeEnabled = false
+    }
+
+    /** True when JNI backend is currently active; false means Kotlin fallback. */
+    fun isUsingNative(): Boolean = nativeEnabled
+
+    private fun releaseHandlesSilently() {
+        if (handleX != 0L) {
+            runCatching { nativeDestroy(handleX) }
+        }
+        if (handleY != 0L) {
+            runCatching { nativeDestroy(handleY) }
+        }
+        if (handleZ != 0L) {
+            runCatching { nativeDestroy(handleZ) }
+        }
     }
 
     // ── JNI declarations ────────────────────────────────────────────────
