@@ -104,7 +104,7 @@ service cloud.firestore {
 
     /** Fields an operator is allowed to modify (status workflow + notes). */
     function onlyUpdatingOperatorFields() {
-      let allowed = ['status', 'operatorNotes', 'resolvedAt', 'resolvedBy'];
+      let allowed = ['status', 'operatorId', 'notes', 'operatorNotes', 'resolvedAt', 'resolvedBy'];
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowed);
     }
 

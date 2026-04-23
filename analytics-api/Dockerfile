@@ -7,13 +7,18 @@
 # Result: ~150MB image (vs ~900MB with full Python base)
 # ═══════════════════════════════════════════════════════════════════
 
+# Keep the base image centralized so patch updates are one-line changes.
+ARG PYTHON_BASE_IMAGE=python:3.12.12-slim-bookworm
+
 # ── Stage 1: dependency builder ─────────────────────────────────────
-FROM python:3.12-slim AS builder
+FROM ${PYTHON_BASE_IMAGE} AS builder
 
 WORKDIR /app
 
-# Install build tools (needed for some C-extension packages)
-RUN apt-get update && apt-get install -y --no-install-recommends gcc && \
+# Apply security updates, then install build tools needed for C extensions.
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
+    apt-get install -y --no-install-recommends gcc && \
     rm -rf /var/lib/apt/lists/*
 
 # Create virtualenv inside /app/venv
@@ -27,7 +32,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 
 # ── Stage 2: runtime image ──────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM ${PYTHON_BASE_IMAGE} AS runtime
 
 LABEL org.opencontainers.image.title="RoadGuard Analytics API"
 LABEL org.opencontainers.image.description="FastAPI microservice for spatial clustering and trend forecasting"
@@ -35,8 +40,11 @@ LABEL org.opencontainers.image.version="1.0.0"
 
 WORKDIR /app
 
-# Create non-root user for security (Principle of Least Privilege)
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+# Apply runtime security updates and create non-root user (PoLP).
+RUN apt-get update && \
+    apt-get dist-upgrade -y && \
+    rm -rf /var/lib/apt/lists/* && \
+    groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy virtualenv from builder
 COPY --from=builder /app/venv /app/venv
