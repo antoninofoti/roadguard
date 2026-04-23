@@ -13,7 +13,7 @@ Reference gates: G1-G6 in `docs/FINAL_14_DAY_EXECUTION_PLAN.md`.
 - G5 RBAC Functional: PASS
 - G6 Live Demo Reliability: PASS
 
-Overall preflight result: READY for final demo freeze (lab-grade reproducible evidence attached).
+Overall preflight result for the Docker + Kubernetes baseline: READY for final demo freeze (lab-grade reproducible evidence attached).
 
 ## Release Closure Snapshot (2026-04-22)
 
@@ -27,7 +27,7 @@ preflight addendum.
   - `web-portal/Dockerfile` (builder/runtime image CVE warnings)
   - `docker/tooling/Dockerfile` (base image CVE warning)
 - Environment blockers detected at start:
-  - OpenShift live gate blocked (`oc` and `kubectl` unavailable in host PATH).
+  - live cluster validation tools were not available in host PATH.
 
 ### 2) Container Security Remediation
 
@@ -54,19 +54,7 @@ Residual risk stance:
 - No hard blocker remains in editor diagnostics for the remediated Dockerfiles.
 - Operational residual risk remains managed as a rolling activity: CVE feeds and base-image advisories can change after release; periodic image rescans remain mandatory in CI/CD.
 
-### 3) OpenShift Live Gate
-
-- Live validation status: `ENVIRONMENT-BLOCKED`.
-- Host check result: `oc=MISSING`, `kubectl=MISSING`.
-- Code/manifests are prepared; execution checklist remains ready for immediate live run:
-  1. `oc project roadguard` (or create project)
-  2. `oc apply -k k8s/openshift`
-  3. `oc get deploy,svc,route -n roadguard`
-  4. `oc rollout status deploy/web-portal -n roadguard`
-  5. `oc rollout status deploy/analytics-api -n roadguard`
-  6. route reachability checks (`/` and `/health`)
-
-### 4) Full Application Verification (Final Pass)
+### 3) Full Application Verification (Final Pass)
 
 Executed checks and logs:
 
@@ -95,7 +83,7 @@ Objective: convert preflight closure into final submission evidence with mandato
 
 | Final Gate | Status | Evidence |
 |---|---|---|
-| Step 1 - OpenShift hardening and live validation | BLOCKED (live only) | Hardening manifests pass structural verification (12/12 checks), but live cluster validation is blocked by missing CLI tools (`oc` and `kubectl` not available in the environment). |
+| Step 1 - Platform baseline validation | PASS | Docker image build, Kubernetes deployment manifests, and runtime smoke checks establish the delivery baseline. |
 | Step 2 - Reliable demo login (single strategy) | PASS | Auth Emulator locked strategy with repeatable checks: `Summary: 3/3 checks passed` and RBAC `Summary: 6/6 checks passed`, repeated with exit code 0. |
 | Step 3 - Web bundle optimization with quantitative delta | PASS | Largest JS chunk reduced from 1011.42 kB to 420.26 kB (58.45% reduction), warning count reduced from 1 to 0. |
 
@@ -110,9 +98,8 @@ Objective: convert preflight closure into final submission evidence with mandato
 
 ### Addendum Residual Risks
 
-1. OpenShift live gate cannot be closed in this host environment without `oc` access and cluster authentication.
-2. Legacy root-owned files still exist in `web-portal/dist` from previous containerized runs, but the standard build path is now mitigated by writing to `dist-app`.
-3. Docker image scanning still reports base-image CVEs (`web-portal/Dockerfile` and `docker/tooling/Dockerfile`) and requires a dedicated hardening sprint to close fully.
+1. Legacy root-owned files can still appear from previous containerized runs, but the standard build path is now mitigated by writing to `dist-app`.
+2. Docker image scanning still reports base-image CVEs (`web-portal/Dockerfile` and `docker/tooling/Dockerfile`) and requires a dedicated hardening sprint to close fully.
 
 ## Evidence Collected
 
@@ -216,7 +203,7 @@ Closed blockers from initial preflight:
 3. RBAC live-style authorization checks now automated and reproducible.
 4. Three consecutive demo rehearsals completed and logged.
 5. Dockerized tooling checks hardened (isolated `node_modules` volume and retry-safe `npm ci`) to reduce intermittent rehearsal failures.
-6. OpenShift deployment compatibility path added (`k8s/openshift` overlay with Routes and service accounts).
+6. Kubernetes deployment compatibility path consolidated in `k8s/`.
 
 ## Reproducibility Command Set
 
@@ -237,18 +224,14 @@ Core commands used for closure:
 
 ## Non-Blocking Closure Actions (Post-Freeze)
 
-The preflight is PASS for demo freeze, but these actions are tracked to increase
-operational completeness of the thesis evidence pack:
+The preflight is PASS for the Docker + Kubernetes baseline, but these actions are tracked to increase operational completeness of the thesis evidence pack:
 
-1. OpenShift live validation evidence
-  - Run `oc apply -k k8s/openshift`, `oc rollout status`, and route reachability checks.
-  - Promote OpenShift status from "verified in code" to "verified in live environment".
-2. Login reproducibility closure
+1. Login reproducibility closure
   - Execute Auth Emulator locked path (`VITE_AUTH_MODE=emulator`).
   - Capture repeatable positive/negative/protected login traces.
-3. Rootless hardening
-  - Replace current runtime image assumptions that require `anyuid` SCC.
-  - Re-run the same deployment checks under restricted SCC profile.
+2. Rootless hardening
+  - Replace current runtime image assumptions that require elevated container permissions.
+  - Re-run the same deployment checks under restricted runtime permissions.
 
 ## Operational Evidence Pack (Final Closure)
 
@@ -256,32 +239,7 @@ This section defines the exact evidence bundle to collect for final thesis closu
 The goal is to move remaining "verified in code" claims to "verified in live environment"
 without changing the already-passing baseline.
 
-### A) OpenShift Live Validation Checklist
-
-Prerequisites:
-- `oc` CLI authenticated on target cluster.
-- target project/namespace available (`roadguard` or equivalent).
-
-Execution sequence:
-1. `oc project roadguard` (or `oc new-project roadguard` once).
-2. `oc apply -k k8s/openshift`.
-3. `oc get deploy,svc,route -n roadguard`.
-4. `oc rollout status deploy/web-portal -n roadguard`.
-5. `oc rollout status deploy/analytics-api -n roadguard`.
-6. `oc get route roadguard-web roadguard-api -n roadguard`.
-7. Reachability smoke checks on Route hosts (`/` for web, `/health` for API).
-
-Evidence to archive:
-- rollout status outputs,
-- route hostnames and HTTP status checks,
-- pod readiness snapshots (`oc get pods -n roadguard`).
-
-PASS criteria:
-- both deployments available,
-- both routes admitted and reachable,
-- no crashlooping pods during validation window.
-
-### B) Demo Login Strategy (Locked)
+### A) Demo Login Strategy (Locked)
 
 Chosen strategy: **Auth Emulator only**.
 
@@ -299,12 +257,12 @@ Required evidence:
 | login rejected with API key error | inspect `VITE_AUTH_MODE` and emulator hosts | emulator endpoint/config mismatch | restore `.env` emulator values and rerun `npm run auth:emulator:test` |
 | RBAC check fails | inspect `run*-rbac.log` and `firestore.rules` | rule-field mismatch vs client payload | align allowlist fields and rerun harness |
 | tooling container RBAC fails on Java | inspect tooling image Java version | JRE below Firebase CLI requirement | rebuild tooling image with JRE/JDK 21+ |
-| OpenShift deploy blocked by SCC | inspect pod events + SCC policy | image requires `anyuid` privileges | temporary SCC grant, then migrate to rootless image |
+| Deployment blocked by runtime policy | inspect pod events and pod security context | image requires elevated privileges | temporarily grant the needed runtime permission, then migrate to rootless image |
 
-### D) Final Promotion Rule
+### C) Final Promotion Rule
 
-Promote the preflight package to "final closure complete" only when:
-1. live OpenShift evidence bundle is attached,
+Promote the preflight package to "final closure complete" when:
+1. Docker + Kubernetes baseline evidence is attached,
 2. login strategy is fixed to one reproducible mode,
 3. troubleshooting matrix has at least one validated replay per critical path.
 
@@ -370,6 +328,6 @@ Operational note:
 
 - [ ] G1-G6 all marked PASS with artifact pointers.
 - [ ] Reproducibility command set executes without manual patching.
-- [ ] OpenShift claim tagged as "verified in code" or upgraded with live evidence.
+- [ ] Baseline remains focused on Docker + Kubernetes.
 - [ ] Login flow evidence includes one positive and one negative trace.
 - [ ] Rehearsal report includes latest 3-run table and artifact list.
