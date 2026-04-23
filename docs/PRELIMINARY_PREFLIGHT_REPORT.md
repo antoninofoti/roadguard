@@ -319,6 +319,53 @@ Promote the preflight package to "final closure complete" only when:
 | G5 RBAC Functional | PASS | `output/statistics/demo_rehearsals/run{1..3}-rbac.log` + 6/6 checks summary | `npx -y firebase-tools emulators:exec --project roadguard-rbac-test --only firestore "node web-portal/scripts/rbac-rules-check.mjs"` | promote to authenticated CI runner if required |
 | G6 Live Demo Reliability | PASS | `docs/LIVE_DEMO_REHEARSAL_LOG.md` with 3/3 PASS runs | `USE_DOCKER_TOOLING=1 bash scripts/run_demo_rehearsals.sh` | keep report updated per rehearsal batch |
 
+## Branch Governance Snapshot (2026-04-23)
+
+This snapshot records the post-closure integration status after promoting
+release, Android, web-auth, and cleaned infra deltas into `master`.
+
+### Master Promotion Status
+
+- `origin/master` includes:
+  - release closure chain (`c27208b`, `5bde74c`)
+  - Android integration merge (`3e34a4e`)
+  - web-auth integration merge (`5db8345`)
+  - cleaned infra integration merge (`26aff12`)
+
+### Remote Branch Cleanup Executed
+
+Deleted on remote:
+
+- `origin/release/closure-2026-04-23`
+- `origin/feat/android-fusion-updates`
+- `origin/feat/web-portal-auth-updates`
+
+Retained on remote (not fully consolidated as-is):
+
+- `origin/chore/infra-container-k8s` (source branch contains cache artifacts; only cleaned subset merged)
+- `origin/chore/repo-cleanup` (historical working branch, superseded by master)
+
+### Local Branch Disposition
+
+Merged-equivalent content already in master:
+
+- `release/closure-2026-04-23`
+- `feat/android-fusion-updates`
+- `feat/web-portal-auth-updates`
+- `chore/infra-container-k8s-clean`
+
+Keep as non-merge archive/working branches:
+
+- `wip/split-base` (snapshot archive)
+- `chore/infra-container-k8s` (raw source branch)
+- `chore/repo-cleanup` (local working branch)
+
+Operational note:
+
+- local branch deletion with safe mode (`git branch -d`) may fail when branch
+  history is not a direct ancestor of current HEAD (e.g., cherry-pick/merge
+  equivalence); keep or force-delete only after explicit team policy approval.
+
 ### F) Examiner Quick Acceptance Checklist
 
 - [ ] G1-G6 all marked PASS with artifact pointers.
