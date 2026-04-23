@@ -12,6 +12,21 @@ spec:
     name: analytics-api
   minReplicas: 1
   maxReplicas: 4
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      selectPolicy: Max
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      selectPolicy: Max
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
   metrics:
     - type: Resource
       resource:
