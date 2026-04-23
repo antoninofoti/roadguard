@@ -8,7 +8,7 @@ import { useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Shield, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
-import { useAuthContext } from '../context/AuthContext';
+import { useAuthContext } from '../context/authContext';
 
 export function LoginPage() {
   const { user, isOperator, isLoading, error, signIn } = useAuthContext();

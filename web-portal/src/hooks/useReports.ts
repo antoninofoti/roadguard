@@ -38,9 +38,6 @@ export function useReports(filters: ReportFilters): UseReportsResult {
   );
 
   useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-
     const constraints: QueryConstraint[] = [];
 
     // Firestore 'in' supports up to 30 values
@@ -89,6 +86,7 @@ export function useReports(filters: ReportFilters): UseReportsResult {
           return severityOk && damageTypeOk;
         });
 
+        setError(null);
         setReports(filtered);
         setIsLoading(false);
       },
