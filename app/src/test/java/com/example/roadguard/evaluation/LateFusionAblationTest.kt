@@ -1,5 +1,6 @@
 package com.example.roadguard.evaluation
 
+import com.example.roadguard.detection.FusionConfig
 import com.example.roadguard.detection.FusionEngine
 import com.example.roadguard.detection.FusionAction
 import com.example.roadguard.sensor.AnomalyEvent
@@ -19,7 +20,7 @@ class LateFusionAblationTest {
 
     @Before
     fun setup() {
-        fusionEngine = FusionEngine(
+        val config = FusionConfig(
             cvWeight = 0.55f,
             sensorWeight = 0.30f,
             temporalWeight = 0.15f,
@@ -27,6 +28,7 @@ class LateFusionAblationTest {
             promptThreshold = 0.50f,
             temporalWindowMs = 2000L
         )
+        fusionEngine = FusionEngine(config)
     }
 
     @Test

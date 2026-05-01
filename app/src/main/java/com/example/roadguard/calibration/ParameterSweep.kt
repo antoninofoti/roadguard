@@ -1,5 +1,6 @@
 package com.example.roadguard.calibration
 
+import android.util.Log
 import com.example.roadguard.sensor.AnomalyDetector
 import com.example.roadguard.sensor.AnomalyEvent
 import com.example.roadguard.sensor.KalmanFilter3D
@@ -168,14 +169,17 @@ class ParameterSweep {
         val matchedDet = mutableSetOf<Int>()      // Indices of matched detections
 
         for ((detIdx, det) in detectedAnomalies.withIndex()) {
-            for ((gtIdx, gt) in groundTruth.withIndex()) {
-                if (gtIdx in matchedGt) continue  // Already matched
-                val distance = haversineDistance(det.lat, det.lng, gt.lat, gt.lng)
-                if (distance <= gt.radiusMeters) {
-                    matchedGt.add(gtIdx)
-                    matchedDet.add(detIdx)
-                    break  // Each detection matches at most one GT entry
+            val matchingGtIdx = groundTruth.indices
+                .filter { it !in matchedGt }
+                .firstOrNull { gtIdx ->
+                    val gt = groundTruth[gtIdx]
+                    val distance = haversineDistance(det.lat, det.lng, gt.lat, gt.lng)
+                    distance <= gt.radiusMeters
                 }
+
+            if (matchingGtIdx != null) {
+                matchedGt.add(matchingGtIdx)
+                matchedDet.add(detIdx)
             }
         }
 
@@ -234,6 +238,7 @@ class ParameterSweep {
                         lng = parts.getOrNull(10)?.toDoubleOrNull()
                     )
                 } catch (e: Exception) {
+                    Log.w("ParameterSweep", "Failed to parse sensor reading: ${e.message}")
                     null
                 }
             }

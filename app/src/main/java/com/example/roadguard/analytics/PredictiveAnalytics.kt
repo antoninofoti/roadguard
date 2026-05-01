@@ -134,9 +134,9 @@ class PredictiveAnalytics {
     ): Double {
         if (reports.size < 3) return baseRadiusMeters
 
-        val MIN_RADIUS = 30.0
-        val MAX_RADIUS = 500.0
-        val DENSITY_THRESHOLD = 2
+        val minRadius = 30.0
+        val maxRadius = 500.0
+        val densityThreshold = 2
 
         // Sample density: count neighbors within 100m for first 5 reports
         val sampleSize = minOf(5, reports.size)
@@ -146,10 +146,10 @@ class PredictiveAnalytics {
 
         // If average > 2 neighbors within 100m → dense region → reduce radius
         return when {
-            avgNeighbors >= DENSITY_THRESHOLD ->
-                maxOf(MIN_RADIUS, baseRadiusMeters * 0.7)
+            avgNeighbors >= densityThreshold ->
+                maxOf(minRadius, baseRadiusMeters * 0.7)
             avgNeighbors < 0.5 ->
-                minOf(MAX_RADIUS, baseRadiusMeters * 1.3)
+                minOf(maxRadius, baseRadiusMeters * 1.3)
             else ->
                 baseRadiusMeters
         }

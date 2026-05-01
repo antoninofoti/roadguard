@@ -17,7 +17,6 @@ import android.util.Log
  */
 object ReportValidator {
 
-    private const val TAG = "ReportValidator"
 
     // ── Italy bounding box (generous, covers all Italian territory) ──
     /** Minimum valid latitude for Italy (including Lampedusa). */
@@ -154,7 +153,7 @@ class RateLimiter(
     private val windowMs: Long = ReportValidator.RATE_WINDOW_MS
 ) {
     private val submissionTimestamps = ArrayDeque<Long>()
-    private val TAG = "RateLimiter"
+    private val tag = "RateLimiter"
 
     /**
      * Check if a new submission is allowed right now.
@@ -178,7 +177,7 @@ class RateLimiter(
             submissionTimestamps.addLast(now)
             true
         } else {
-            Log.w(TAG, "Rate limit exceeded: ${submissionTimestamps.size}/$maxRequests " +
+            Log.w(tag, "Rate limit exceeded: ${submissionTimestamps.size}/$maxRequests " +
                     "submissions in last ${windowMs / 1000}s")
             false
         }

@@ -1,5 +1,6 @@
 package com.example.roadguard.sensor
 
+import android.util.Log
 import kotlin.math.sqrt
 
 /**
@@ -39,7 +40,8 @@ class NativeKalmanFilter(
     private val resultBuffer = FloatArray(3)
 
     init {
-        if (nativeEnabled && (handleX == 0L || handleY == 0L || handleZ == 0L)) {
+        val anyHandleInvalid = handleX == 0L || handleY == 0L || handleZ == 0L
+        if (nativeEnabled && anyHandleInvalid) {
             nativeEnabled = false
             releaseHandlesSilently()
         }
@@ -59,7 +61,8 @@ class NativeKalmanFilter(
         return try {
             nativeUpdate3D(handleX, handleY, handleZ, x, y, z, resultBuffer)
             Triple(resultBuffer[0], resultBuffer[1], resultBuffer[2])
-        } catch (_: UnsatisfiedLinkError) {
+        } catch (e: UnsatisfiedLinkError) {
+            Log.w("NativeKalmanFilter", "JNI call failed: ${e.message}")
             nativeEnabled = false
             kotlinFallback.update(x, y, z)
         }
@@ -80,7 +83,8 @@ class NativeKalmanFilter(
             nativeUpdate3D(handleX, handleY, handleZ, x, y, z, resultBuffer)
             val fx = resultBuffer[0]; val fy = resultBuffer[1]; val fz = resultBuffer[2]
             sqrt(fx * fx + fy * fy + fz * fz)
-        } catch (_: UnsatisfiedLinkError) {
+        } catch (e: UnsatisfiedLinkError) {
+            Log.w("NativeKalmanFilter", "JNI call failed: ${e.message}")
             nativeEnabled = false
             kotlinFallback.updateAndGetMagnitude(x, y, z)
         }
@@ -100,7 +104,8 @@ class NativeKalmanFilter(
             nativeReset(handleX)
             nativeReset(handleY)
             nativeReset(handleZ)
-        } catch (_: UnsatisfiedLinkError) {
+        } catch (e: UnsatisfiedLinkError) {
+            Log.w("NativeKalmanFilter", "JNI reset failed: ${e.message}")
             nativeEnabled = false
         }
     }
@@ -132,7 +137,6 @@ class NativeKalmanFilter(
     // ── JNI declarations ────────────────────────────────────────────────
 
     private external fun nativeCreate(q: Float, r: Float): Long
-    private external fun nativeUpdate(handle: Long, measurement: Float): Float
     private external fun nativeReset(handle: Long)
     private external fun nativeDestroy(handle: Long)
     private external fun nativeUpdate3D(
@@ -150,7 +154,8 @@ class NativeKalmanFilter(
         val isAvailable: Boolean = try {
             System.loadLibrary("roadguard_native")
             true
-        } catch (_: UnsatisfiedLinkError) {
+        } catch (e: UnsatisfiedLinkError) {
+            Log.w("NativeKalmanFilter", "Native lib not found: ${e.message}")
             false
         }
     }

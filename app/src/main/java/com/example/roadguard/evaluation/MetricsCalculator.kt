@@ -39,37 +39,40 @@ class MetricsCalculator {
         mode: DetectionMode
     ): EvaluationMetrics {
         // Only consider events with GPS coordinates and that were reportable
-        val geoEvents = events.filter {
+        val detectedAnomalies = events.filter {
             it.lat != null && it.lng != null &&
             (it.action == "AUTO_REPORT" || it.action == "PROMPT_USER")
         }
 
         val matchedGt = mutableSetOf<Int>()
-        val matchedEvents = mutableSetOf<Int>()
+        val matchedDet = mutableSetOf<Int>()
 
         // Greedy matching: each detection matches at most one GT entry
-        for ((evIdx, event) in geoEvents.withIndex()) {
-            for ((gtIdx, gt) in groundTruth.withIndex()) {
-                if (gtIdx in matchedGt) continue
-                val dist = haversineDistance(event.lat!!, event.lng!!, gt.lat, gt.lng)
-                if (dist <= gt.radiusMeters) {
-                    matchedGt.add(gtIdx)
-                    matchedEvents.add(evIdx)
-                    break
+        for ((detIdx, det) in detectedAnomalies.withIndex()) {
+            val matchingGtIdx = groundTruth.indices
+                .filter { it !in matchedGt }
+                .firstOrNull { gtIdx ->
+                    val gt = groundTruth[gtIdx]
+                    val distance = haversineDistance(det.lat!!, det.lng!!, gt.lat, gt.lng)
+                    distance <= gt.radiusMeters
                 }
+            
+            if (matchingGtIdx != null) {
+                matchedGt.add(matchingGtIdx)
+                matchedDet.add(detIdx)
             }
         }
 
         val tp = matchedGt.size
-        val fp = geoEvents.size - matchedEvents.size
+        val fp = detectedAnomalies.size - matchedDet.size
         val fn = groundTruth.size - matchedGt.size
 
         val precision = if (tp + fp > 0) tp.toFloat() / (tp + fp) else 0f
         val recall = if (tp + fn > 0) tp.toFloat() / (tp + fn) else 0f
         val f1 = if (precision + recall > 0) 2 * precision * recall / (precision + recall) else 0f
 
-        val avgFused = if (geoEvents.isNotEmpty())
-            geoEvents.map { it.fusedScore }.average().toFloat() else 0f
+        val avgFused = if (detectedAnomalies.isNotEmpty())
+            detectedAnomalies.map { it.fusedScore }.average().toFloat() else 0f
 
         return EvaluationMetrics(
             mode = mode,
@@ -81,7 +84,7 @@ class MetricsCalculator {
             f1 = f1,
             avgFusedScore = avgFused,
             avgLatencyMs = 0f,      // Computed separately if timestamps align with GT
-            totalEvents = geoEvents.size,
+            totalEvents = detectedAnomalies.size,
             condition = condition
         )
     }

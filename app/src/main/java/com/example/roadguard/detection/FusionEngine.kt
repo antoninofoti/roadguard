@@ -47,13 +47,20 @@ import kotlin.math.min
  * @param fusionMode FIXED (original) or ADAPTIVE (context-aware, thesis contribution)
  * @param detectionMode Optional Phase E evaluation mode (overrides fusionMode when set)
  */
+/**
+ * Configuration parameters for the [FusionEngine].
+ */
+data class FusionConfig(
+    val cvWeight: Float = 0.55f,
+    val sensorWeight: Float = 0.30f,
+    val temporalWeight: Float = 0.15f,
+    val autoThreshold: Float = 0.75f,
+    val promptThreshold: Float = 0.50f,
+    val temporalWindowMs: Long = 2000L
+)
+
 class FusionEngine(
-    private val cvWeight: Float = 0.55f,
-    private val sensorWeight: Float = 0.30f,
-    private val temporalWeight: Float = 0.15f,
-    private val autoThreshold: Float = 0.75f,
-    private val promptThreshold: Float = 0.50f,
-    private val temporalWindowMs: Long = 2000L,
+    private val config: FusionConfig = FusionConfig(),
     var fusionMode: FusionMode = FusionMode.FIXED,
     var detectionMode: DetectionMode? = null
 ) {
@@ -139,14 +146,15 @@ class FusionEngine(
         recentSensorEvents.add(event)
         trimBuffer(recentSensorEvents, maxBufferSize)
 
-        // Find best matching CV detection within temporal window
-        val matchingCv = findMatchingCvDetection(now)
+        // Find best matching CV detection within temporal window centered on event
+        val eventTimeMs = normalizeEventTimestampMs(event.timestamp)
+        val matchingCv = findMatchingCvDetection(eventTimeMs)
 
         return computeFusion(
             cvConfidence = matchingCv?.confidence ?: 0f,
             sensorEvent = event,
             damageTypeHint = event.type.name.lowercase(),
-            timestamp = now
+            timestamp = eventTimeMs
         )
     }
 
@@ -185,8 +193,8 @@ class FusionEngine(
 
         // Determine action
         val action = when {
-            fusedScore >= autoThreshold -> FusionAction.AUTO_REPORT
-            fusedScore >= promptThreshold -> FusionAction.PROMPT_USER
+            fusedScore >= config.autoThreshold -> FusionAction.AUTO_REPORT
+            fusedScore >= config.promptThreshold -> FusionAction.PROMPT_USER
             else -> FusionAction.DISCARD
         }
 
@@ -248,7 +256,7 @@ class FusionEngine(
                 DetectionMode.CV_ONLY     -> Triple(1.0f, 0.0f, 0.0f)
                 DetectionMode.SENSOR_ONLY -> Triple(0.0f, 1.0f, 0.0f)
                 DetectionMode.FIXED_FUSION ->
-                    Triple(cvWeight, sensorWeight, temporalWeight)
+                    Triple(config.cvWeight, config.sensorWeight, config.temporalWeight)
                 DetectionMode.ADAPTIVE_FUSION ->
                     computeAdaptiveWeights()
             }
@@ -256,7 +264,7 @@ class FusionEngine(
 
         // Standard FusionMode path (no DetectionMode override)
         return when (fusionMode) {
-            FusionMode.FIXED    -> Triple(cvWeight, sensorWeight, temporalWeight)
+            FusionMode.FIXED    -> Triple(config.cvWeight, config.sensorWeight, config.temporalWeight)
             FusionMode.ADAPTIVE -> computeAdaptiveWeights()
         }
     }
@@ -275,14 +283,14 @@ class FusionEngine(
         val cvModifier     = speedProvider.getCvModifier()     * lightProvider.getCvModifier()
         val sensorModifier = speedProvider.getSensorModifier() * lightProvider.getSensorModifier()
 
-        val rawAlpha = cvWeight     * cvModifier
-        val rawBeta  = sensorWeight * sensorModifier
-        val rawGamma = temporalWeight              // Temporal not context-modified
+        val rawAlpha = config.cvWeight     * cvModifier
+        val rawBeta  = config.sensorWeight * sensorModifier
+        val rawGamma = config.temporalWeight              // Temporal not context-modified
 
         val total = rawAlpha + rawBeta + rawGamma
         if (total <= 0f) {
             Log.w(TAG, "Weight normalization fallback: total=$total")
-            return Triple(cvWeight, sensorWeight, temporalWeight)
+            return Triple(config.cvWeight, config.sensorWeight, config.temporalWeight)
         }
         return Triple(rawAlpha / total, rawBeta / total, rawGamma / total)
     }
@@ -291,8 +299,8 @@ class FusionEngine(
      * Find the best matching sensor event within the temporal window.
      */
     private fun findMatchingSensorEvent(timestampMs: Long): AnomalyEvent? {
-        val windowStart = timestampMs - temporalWindowMs
-        val windowEnd = timestampMs + temporalWindowMs
+        val windowStart = timestampMs - config.temporalWindowMs
+        val windowEnd = timestampMs + config.temporalWindowMs
 
         return recentSensorEvents
             .filter { event ->
@@ -311,21 +319,20 @@ class FusionEngine(
         val nowMs = System.currentTimeMillis()
         val nowNano = System.nanoTime()
 
-        // Epoch milliseconds are expected to be within a realistic wall-clock range.
-        // Anything much smaller is likely a monotonic clock value.
-        val minEpochMs = 946_684_800_000L   // 2000-01-01
-        val maxEpochMs = 4_102_444_800_000L // 2100-01-01
-        if (rawTimestamp in minEpochMs..maxEpochMs) {
+        // 1. Check if it is a nanosecond monotonic timestamp.
+        // Heuristic: if its age relative to nowNano is reasonable (within 1 hour), it's likely nanos.
+        val ageNs = nowNano - rawTimestamp
+        if (kotlin.math.abs(ageNs) < 3_600_000_000_000L) { // 1 hour in ns
+            return nowMs - (ageNs / 1_000_000L)
+        }
+
+        // 2. Check if it's an epoch millisecond timestamp.
+        // Wall-clock range: 2001 (10^12) to 2060 (approx 3*10^12)
+        if (rawTimestamp in 1_000_000_000_000L..3_000_000_000_000L) {
             return rawTimestamp
         }
 
-        // Compatibility path for System.nanoTime() timestamps.
-        if (rawTimestamp > 0L) {
-            val ageMs = ((nowNano - rawTimestamp).coerceAtLeast(0L)) / 1_000_000L
-            return nowMs - ageMs
-        }
-
-        // Fallback: never emit an obviously invalid timestamp.
+        // 3. Fallback: assume it's current if we can't map it.
         return nowMs
     }
 
@@ -333,8 +340,8 @@ class FusionEngine(
      * Find the best matching CV detection within the temporal window.
      */
     private fun findMatchingCvDetection(timestampMs: Long): CvDetection? {
-        val windowStart = timestampMs - temporalWindowMs
-        val windowEnd = timestampMs + temporalWindowMs
+        val windowStart = timestampMs - config.temporalWindowMs
+        val windowEnd = timestampMs + config.temporalWindowMs
 
         return recentCvDetections
             .filter { it.timestampMs in windowStart..windowEnd }

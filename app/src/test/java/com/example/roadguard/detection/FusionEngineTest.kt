@@ -20,7 +20,7 @@ class FusionEngineTest {
 
     @Before
     fun setup() {
-        engine = FusionEngine(
+        val config = FusionConfig(
             cvWeight = 0.55f,
             sensorWeight = 0.30f,
             temporalWeight = 0.15f,
@@ -28,6 +28,7 @@ class FusionEngineTest {
             promptThreshold = 0.50f,
             temporalWindowMs = 2000L
         )
+        engine = FusionEngine(config)
     }
 
     // ========== Core fusion scenarios ==========

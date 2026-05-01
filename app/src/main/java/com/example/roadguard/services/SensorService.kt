@@ -100,9 +100,6 @@ class SensorService : Service(), SensorEventListener {
         gyroStdThreshold = GYRO_THRESHOLD
     )
 
-    // Repository for uploads
-    private val reportRepository = ReportRepository()
-
     // Data storage
     private val recentDataPoints = ArrayDeque<SensorDataPoint>(DATA_WINDOW_SIZE)
 
@@ -118,11 +115,8 @@ class SensorService : Service(), SensorEventListener {
     // Phase D: Current fusion context (speed + light)
     private var currentFusionContext: FusionContext = FusionContext.UNKNOWN
 
-    // Logging
-    var isLoggingEnabled = false
-        private set
-    private var csvWriter: FileWriter? = null
-    private var currentCsvFile: File? = null
+    // Logging helper
+    private lateinit var sensorLogger: SensorLogger
 
     // Anomaly event callback
     private var onAnomalyDetected: ((AnomalyEvent) -> Unit)? = null
@@ -142,6 +136,7 @@ class SensorService : Service(), SensorEventListener {
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
         lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
+        sensorLogger = SensorLogger(this)
 
         // Register at GAME rate for better temporal resolution
         accelerometer?.let {
@@ -182,7 +177,7 @@ class SensorService : Service(), SensorEventListener {
         super.onDestroy()
         sensorManager.unregisterListener(this)
         stopLocationUpdates()
-        stopLogging()
+        sensorLogger.stopLogging()
         accelKalman.close()
         gyroKalman.close()
         Log.d(TAG, "SensorService stopped")
@@ -291,23 +286,17 @@ class SensorService : Service(), SensorEventListener {
         }
 
         // Step 5: Log to CSV if enabled
-        if (isLoggingEnabled) {
-            logToCsv(
-                timestamp = timestamp,
-                accelRaw = latestAccel,
-                accelFiltered = floatArrayOf(
-                    latestAccel[0], latestAccel[1], latestAccel[2] // Placeholder, we don't store filtered axes
-                ),
-                accelMagFiltered = filteredAccelMag,
-                gyroRaw = latestGyro,
-                gyroFiltered = floatArrayOf(
-                    latestGyro[0], latestGyro[1], latestGyro[2] // Placeholder, we don't store filtered axes
-                ),
-                gyroMagFiltered = filteredGyroMag,
-                location = currentLocation,
-                event = event
-            )
-        }
+        sensorLogger.logToCsv(
+            timestamp = timestamp,
+            accelRaw = latestAccel,
+            accelMagFiltered = filteredAccelMag,
+            gyroRaw = latestGyro,
+            gyroMagFiltered = filteredGyroMag,
+            location = currentLocation,
+            isNight = currentFusionContext.isNightTime,
+            latestLightLux = latestLightLux,
+            event = event
+        )
     }
 
     /**
@@ -349,106 +338,12 @@ class SensorService : Service(), SensorEventListener {
     // ========== Public API ==========
 
     fun toggleLogging(enabled: Boolean) {
-        if (enabled == isLoggingEnabled) return
-        if (enabled) {
-            startLogging()
-        } else {
-            stopLogging()
-        }
+        if (enabled) sensorLogger.startLogging() else sensorLogger.stopLogging()
     }
 
-    private fun startLogging() {
-        try {
-            val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-            val fileName = "SensorLog_$timeStamp.csv"
-            currentCsvFile = File(getExternalFilesDir(null), fileName)
-            csvWriter = FileWriter(currentCsvFile)
-            
-            // Write CSV Header (Phase D: added context columns for thesis evaluation)
-            val header = "Timestamp,Accel_Raw_X,Accel_Raw_Y,Accel_Raw_Z," +
-                    "Accel_Filtered_Mag," +
-                    "Gyro_Raw_X,Gyro_Raw_Y,Gyro_Raw_Z," +
-                    "Gyro_Filtered_Mag," +
-                    "Lat,Lng,Speed_kmh," +
-                    "AmbientLight_lux,IsNight," +
-                    "Anomaly_Type,Anomaly_Confidence\n"
-            csvWriter?.append(header)
-            
-            isLoggingEnabled = true
-            Log.d(TAG, "Logging started: ${currentCsvFile?.absolutePath}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start logging", e)
-            isLoggingEnabled = false
-        }
-    }
+    fun getLatestLogFile(): File? = sensorLogger.getLatestLogFile()
 
-    private fun stopLogging() {
-        if (!isLoggingEnabled) return
-        try {
-            csvWriter?.flush()
-            csvWriter?.close()
-            csvWriter = null
-            Log.d(TAG, "Logging stopped: ${currentCsvFile?.absolutePath}")
-
-            // Auto-upload to Firebase Storage
-            currentCsvFile?.let { file ->
-                CoroutineScope(Dispatchers.IO).launch {
-                    Log.d(TAG, "Starting upload of ${file.name} to Firebase Storage...")
-                    val result = reportRepository.uploadSensorLog(file)
-                    result.onSuccess { uri ->
-                        Log.d(TAG, "Log uploaded successfully: $uri")
-                    }
-                    result.onFailure { e ->
-                        Log.e(TAG, "Log upload failed", e)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to stop logging", e)
-        } finally {
-            isLoggingEnabled = false
-        }
-    }
-
-    private fun logToCsv(
-        timestamp: Long,
-        accelRaw: FloatArray,
-        accelFiltered: FloatArray,
-        accelMagFiltered: Float,
-        gyroRaw: FloatArray,
-        gyroFiltered: FloatArray,
-        gyroMagFiltered: Float,
-        location: Location?,
-        event: AnomalyEvent?
-    ) {
-        try {
-            val lat = location?.latitude?.toString() ?: ""
-            val lng = location?.longitude?.toString() ?: ""
-            val speedKmh = location?.speed?.let { (it * 3.6).toString() } ?: ""
-            val lightLux = if (latestLightLux >= 0f) latestLightLux.toString() else ""
-            val isNight = currentFusionContext.isNightTime.toString()
-            val anomalyType = event?.type?.name ?: ""
-            val anomalyConfidence = event?.confidence?.toString() ?: ""
-
-            val line = "$timestamp,${accelRaw[0]},${accelRaw[1]},${accelRaw[2]}," +
-                    "${accelMagFiltered}," +
-                    "${gyroRaw[0]},${gyroRaw[1]},${gyroRaw[2]}," +
-                    "${gyroMagFiltered}," +
-                    "$lat,$lng,$speedKmh," +
-                    "$lightLux,$isNight," +
-                    "$anomalyType,$anomalyConfidence\n"
-            
-            csvWriter?.append(line)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error writing to CSV", e)
-            // Auto stop on error
-            stopLogging()
-        }
-    }
-
-    fun getLatestLogFile(): File? {
-        return currentCsvFile
-    }
+    val isLoggingEnabled: Boolean get() = sensorLogger.isLoggingEnabled
 
     /**
      * Set a callback to receive anomaly events.
@@ -467,17 +362,11 @@ class SensorService : Service(), SensorEventListener {
     }
 
     /**
-     * Get the latest filtered accelerometer magnitude.
+     * Get the latest filtered sensor magnitudes (Accel, Gyro).
      */
-    fun getFilteredAccelMagnitude(): Float {
-        return recentDataPoints.peekLast()?.filteredAccelMagnitude ?: 0f
-    }
-
-    /**
-     * Get the latest filtered gyroscope magnitude.
-     */
-    fun getFilteredGyroMagnitude(): Float {
-        return recentDataPoints.peekLast()?.filteredGyroMagnitude ?: 0f
+    fun getFilteredMagnitudes(): Pair<Float, Float> {
+        val last = recentDataPoints.peekLast()
+        return Pair(last?.filteredAccelMagnitude ?: 0f, last?.filteredGyroMagnitude ?: 0f)
     }
 
     /**

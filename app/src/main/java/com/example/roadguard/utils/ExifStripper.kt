@@ -128,6 +128,7 @@ object ExifStripper {
             val lng = exif.getAttribute(ExifInterface.TAG_GPS_LONGITUDE)
             lat == null && lng == null
         } catch (e: Exception) {
+            Log.w("ExifStripper", "Failed to check GPS data: ${e.message}")
             false
         }
     }

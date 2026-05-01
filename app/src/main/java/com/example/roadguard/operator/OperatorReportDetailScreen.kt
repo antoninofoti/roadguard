@@ -97,82 +97,9 @@ fun OperatorReportDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Report image
-            if (report.imageUrl.isNotEmpty()) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                ) {
-                    AsyncImage(
-                        model = report.imageUrl,
-                        contentDescription = "Road damage image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Fusion data card
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Detection Info",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    InfoRow("Damage Type", report.damageType.replaceFirstChar { it.uppercase() }.ifEmpty { "Unknown" })
-                    InfoRow("Detection Source", formatSource(report.detectionSource))
-                    InfoRow("CV Confidence", "%.1f%%".format(report.cvConfidence * 100))
-                    InfoRow("Sensor Confidence", "%.1f%%".format(report.sensorConfidence * 100))
-                    InfoRow("Fused Score", "%.1f%%".format(report.fusedScore * 100))
-                    InfoRow("Severity", "%.1f%%".format(report.severity * 100))
-                    InfoRow("Status", currentStatus.name)
-
-                    report.timestamp?.let { date ->
-                        InfoRow("Reported", SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(date))
-                    }
-                    report.resolvedAt?.let { date ->
-                        InfoRow("Resolved", SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(date))
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Map
-            report.location?.let { geoPoint ->
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    val position = LatLng(geoPoint.latitude, geoPoint.longitude)
-                    val cameraPositionState = rememberCameraPositionState {
-                        this.position = CameraPosition.fromLatLngZoom(position, 16f)
-                    }
-                    GoogleMap(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp),
-                        cameraPositionState = cameraPositionState
-                    ) {
-                        Marker(
-                            state = MarkerState(position = position),
-                            title = report.damageType.replaceFirstChar { it.uppercase() }
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            ReportImageCard(report.imageUrl)
+            FusionInfoCard(report, currentStatus)
+            ReportMapCard(report)
 
             // Operator notes
             OutlinedTextField(
@@ -186,55 +113,153 @@ fun OperatorReportDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Action buttons
-            when (currentStatus) {
-                ReportStatus.PENDING -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { onConfirm(notes) },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF4CAF50)
-                            )
-                        ) {
-                            Text("✓ Confirm")
-                        }
-                        Button(
-                            onClick = { onReject(notes) },
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFFE53935)
-                            )
-                        ) {
-                            Text("✕ Reject")
-                        }
-                    }
-                }
-                ReportStatus.CONFIRMED -> {
-                    Button(
-                        onClick = { onResolve(notes) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF2196F3)
-                        )
-                    ) {
-                        Text("Mark as Resolved")
-                    }
-                }
-                ReportStatus.REJECTED, ReportStatus.RESOLVED -> {
-                    Text(
-                        text = "This report has been ${currentStatus.name.lowercase()}.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
+            ReportActionSection(
+                status = currentStatus,
+                notes = notes,
+                onConfirm = onConfirm,
+                onReject = onReject,
+                onResolve = onResolve
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun ReportImageCard(imageUrl: String) {
+    if (imageUrl.isNotEmpty()) {
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = "Road damage image",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun FusionInfoCard(report: Report, status: ReportStatus) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Detection Info",
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            InfoRow("Damage Type", report.damageType.replaceFirstChar { it.uppercase() }.ifEmpty { "Unknown" })
+            InfoRow("Detection Source", formatSource(report.detectionSource))
+            InfoRow("CV Confidence", "%.1f%%".format(report.cvConfidence * 100))
+            InfoRow("Sensor Confidence", "%.1f%%".format(report.sensorConfidence * 100))
+            InfoRow("Fused Score", "%.1f%%".format(report.fusedScore * 100))
+            InfoRow("Severity", "%.1f%%".format(report.severity * 100))
+            InfoRow("Status", status.name)
+
+            report.timestamp?.let { date ->
+                InfoRow("Reported", SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(date))
+            }
+            report.resolvedAt?.let { date ->
+                InfoRow("Resolved", SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault()).format(date))
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+}
+
+@Composable
+private fun ReportMapCard(report: Report) {
+    report.location?.let { geoPoint ->
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val position = LatLng(geoPoint.latitude, geoPoint.longitude)
+            val cameraPositionState = rememberCameraPositionState {
+                this.position = CameraPosition.fromLatLngZoom(position, 16f)
+            }
+            GoogleMap(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                cameraPositionState = cameraPositionState
+            ) {
+                Marker(
+                    state = MarkerState(position = position),
+                    title = report.damageType.replaceFirstChar { it.uppercase() }
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ReportActionSection(
+    status: ReportStatus,
+    notes: String,
+    onConfirm: (String) -> Unit,
+    onReject: (String) -> Unit,
+    onResolve: (String) -> Unit
+) {
+    when (status) {
+        ReportStatus.PENDING -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = { onConfirm(notes) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50)
+                    )
+                ) {
+                    Text("✓ Confirm")
+                }
+                Button(
+                    onClick = { onReject(notes) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE53935)
+                    )
+                ) {
+                    Text("✕ Reject")
+                }
+            }
+        }
+        ReportStatus.CONFIRMED -> {
+            Button(
+                onClick = { onResolve(notes) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2196F3)
+                )
+            ) {
+                Text("Mark as Resolved")
+            }
+        }
+        ReportStatus.REJECTED, ReportStatus.RESOLVED -> {
+            Text(
+                text = "This report has been ${status.name.lowercase()}.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

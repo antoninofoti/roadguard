@@ -1,5 +1,7 @@
 package com.example.roadguard.evaluation
 
+import android.util.Log
+
 /**
  * A single detection event logged during a field evaluation session.
  *
@@ -81,6 +83,7 @@ data class EvaluationEvent(
                     isGroundTruth = p.getOrNull(16)?.toBoolean() ?: false
                 )
             } catch (e: Exception) {
+                Log.w("EvaluationEvent", "Failed to parse CSV line: ${e.message}")
                 null
             }
         }

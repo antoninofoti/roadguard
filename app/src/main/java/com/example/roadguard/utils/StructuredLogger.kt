@@ -1,6 +1,8 @@
 package com.example.roadguard.utils
 
 import android.util.Log
+import com.example.roadguard.detection.FusionAction
+import com.example.roadguard.detection.FusionResult
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,32 +70,26 @@ object StructuredLogger {
      * This is the most important event for offline analysis — it captures
      * the full state of the system at each detection decision point.
      */
+    /**
+     * Log a FusionEngine result with all relevant metadata.
+     */
     fun logFusionResult(
-        cvScore: Float,
-        sensorScore: Float,
-        fusedScore: Float,
-        action: String,
-        detectionMode: String,
-        fusionMode: String,
-        effectiveAlpha: Float,
-        effectiveBeta: Float,
-        effectiveGamma: Float,
-        damageType: String,
+        result: FusionResult,
         lat: Double? = null,
         lng: Double? = null,
         speedKmh: Float = 0f
     ) {
         buildEntry(EVENT_FUSION_RESULT) {
-            put("cvScore", cvScore)
-            put("sensorScore", sensorScore)
-            put("fusedScore", fusedScore)
-            put("action", action)
-            put("detectionMode", detectionMode)
-            put("fusionMode", fusionMode)
-            put("alpha", effectiveAlpha)
-            put("beta", effectiveBeta)
-            put("gamma", effectiveGamma)
-            put("damageType", damageType)
+            put("cvScore", result.cvConfidence)
+            put("sensorScore", result.sensorConfidence)
+            put("fusedScore", result.fusedScore)
+            put("action", result.action.name)
+            put("detectionSource", result.detectionSource)
+            put("fusionMode", result.fusionMode)
+            put("alpha", result.effectiveAlpha)
+            put("beta", result.effectiveBeta)
+            put("gamma", result.effectiveGamma)
+            put("damageType", result.damageType)
             lat?.let { put("lat", roundGps(it)) }
             lng?.let { put("lng", roundGps(it)) }
             put("speed_kmh", speedKmh)
@@ -202,14 +198,20 @@ object StructuredLogger {
     // ── Internal helpers ─────────────────────────────────────────────
 
     private fun buildEntry(eventType: String, block: JSONObject.() -> Unit): JSONObject {
-        return JSONObject().apply {
-            put("ts", ISO_FORMAT.format(Date()))
-            put("event", eventType)
-            block()
+        return try {
+            JSONObject().apply {
+                put("ts", ISO_FORMAT.format(Date()))
+                put("event", eventType)
+                block()
+            }
+        } catch (e: Exception) {
+            Log.w("StructuredLogger", "Validation error logging failed: ${e.message}")
+            JSONObject()
         }
     }
 
     private fun JSONObject.emit(level: String) {
+        if (length() == 0) return
         put("level", level)
         val line = toString()
         when (level) {
