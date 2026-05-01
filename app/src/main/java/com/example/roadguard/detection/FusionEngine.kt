@@ -317,22 +317,25 @@ class FusionEngine(
      */
     private fun normalizeEventTimestampMs(rawTimestamp: Long): Long {
         val nowMs = System.currentTimeMillis()
-        val nowNano = System.nanoTime()
 
-        // 1. Check if it is a nanosecond monotonic timestamp.
-        // Heuristic: if its age relative to nowNano is reasonable (within 1 hour), it's likely nanos.
+        // 1. If it is an epoch millisecond timestamp close to current time, trust it first.
+        // This avoids ambiguity on low-uptime systems where nanoTime() might be in the same magnitude.
+        if (kotlin.math.abs(nowMs - rawTimestamp) < 3_600_000L) { // Within 1 hour
+            return rawTimestamp
+        }
+
+        // 2. Check if it is a nanosecond monotonic timestamp.
+        val nowNano = System.nanoTime()
         val ageNs = nowNano - rawTimestamp
         if (kotlin.math.abs(ageNs) < 3_600_000_000_000L) { // 1 hour in ns
             return nowMs - (ageNs / 1_000_000L)
         }
 
-        // 2. Check if it's an epoch millisecond timestamp.
-        // Wall-clock range: 2001 (10^12) to 2060 (approx 3*10^12)
+        // 3. Fallback: check broad epoch range (2001-2060)
         if (rawTimestamp in 1_000_000_000_000L..3_000_000_000_000L) {
             return rawTimestamp
         }
 
-        // 3. Fallback: assume it's current if we can't map it.
         return nowMs
     }
 
