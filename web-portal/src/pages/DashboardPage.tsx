@@ -9,32 +9,36 @@
  * Below the map: scrollable report list
  */
 
-import { useState, useCallback } from 'react';
-import { lazy, Suspense } from 'react';
-import { motion } from 'framer-motion';
-import { Menu, List, MapIcon } from 'lucide-react';
-import { Header } from '../components/layout/Header';
-import { Sidebar } from '../components/layout/Sidebar';
-import { ReportList } from '../components/reports/ReportList';
-import { useReports } from '../hooks/useReports';
-import { DEFAULT_FILTERS, type Report, type ReportFilters } from '../types/report';
+import { useState, useCallback } from "react";
+import { lazy, Suspense } from "react";
+import { motion } from "framer-motion";
+import { Menu, List, MapIcon } from "lucide-react";
+import { Header } from "../components/layout/Header";
+import { Sidebar } from "../components/layout/Sidebar";
+import { ReportList } from "../components/reports/ReportList";
+import { useReports } from "../hooks/useReports";
+import {
+  DEFAULT_FILTERS,
+  type Report,
+  type ReportFilters,
+} from "../types/report";
 
 const ReportMap = lazy(() =>
-  import('../components/map/ReportMap').then((module) => ({
+  import("../components/map/ReportMap").then((module) => ({
     default: module.ReportMap,
-  }))
+  })),
 );
 const ReportDetail = lazy(() =>
-  import('../components/reports/ReportDetail').then((module) => ({
+  import("../components/reports/ReportDetail").then((module) => ({
     default: module.ReportDetail,
-  }))
+  })),
 );
 
 export function DashboardPage() {
   const [filters, setFilters] = useState<ReportFilters>(DEFAULT_FILTERS);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<'map' | 'list'>('map');
+  const [activeView, setActiveView] = useState<"map" | "list">("map");
 
   const { reports, isLoading, error } = useReports(filters);
 
@@ -47,7 +51,7 @@ export function DashboardPage() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--color-surface-900)]">
+    <div className="h-screen flex flex-col bg-surface-900">
       <Header />
 
       <div className="flex-1 flex overflow-hidden">
@@ -63,12 +67,12 @@ export function DashboardPage() {
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Toolbar */}
-          <div className="h-12 bg-[var(--color-surface-800)] border-b border-[var(--color-glass-border)] flex items-center justify-between px-4 shrink-0">
+          <div className="h-12 bg-surface-800 border-b border-glass-border flex items-center justify-between px-4 shrink-0">
             <div className="flex items-center gap-3">
               {/* Mobile sidebar toggle */}
               <button
                 onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-1.5 rounded-lg hover:bg-[var(--color-surface-700)] text-slate-400"
+                className="lg:hidden p-1.5 rounded-lg hover:bg-surface-700 text-slate-400"
               >
                 <Menu className="w-5 h-5" />
               </button>
@@ -85,23 +89,23 @@ export function DashboardPage() {
             </div>
 
             {/* View toggle (mobile) */}
-            <div className="flex items-center gap-1 bg-[var(--color-surface-900)] rounded-lg p-0.5">
+            <div className="flex items-center gap-1 bg-surface-900 rounded-lg p-0.5">
               <button
-                onClick={() => setActiveView('map')}
+                onClick={() => setActiveView("map")}
                 className={`p-1.5 rounded-md text-xs transition-colors ${
-                  activeView === 'map'
-                    ? 'bg-[var(--color-surface-700)] text-white'
-                    : 'text-slate-500 hover:text-slate-300'
+                  activeView === "map"
+                    ? "bg-surface-700 text-white"
+                    : "text-slate-500 hover:text-slate-300"
                 }`}
               >
                 <MapIcon className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setActiveView('list')}
+                onClick={() => setActiveView("list")}
                 className={`p-1.5 rounded-md text-xs transition-colors ${
-                  activeView === 'list'
-                    ? 'bg-[var(--color-surface-700)] text-white'
-                    : 'text-slate-500 hover:text-slate-300'
+                  activeView === "list"
+                    ? "bg-surface-700 text-white"
+                    : "text-slate-500 hover:text-slate-300"
                 }`}
               >
                 <List className="w-4 h-4" />
@@ -116,14 +120,14 @@ export function DashboardPage() {
               {/* Map */}
               <motion.div
                 className={`flex-1 p-3 ${
-                  activeView !== 'map' ? 'hidden lg:block' : ''
+                  activeView !== "map" ? "hidden lg:block" : ""
                 }`}
                 layout
               >
-                <div className="w-full h-full rounded-xl overflow-hidden border border-[var(--color-glass-border)] shadow-lg">
+                <div className="w-full h-full rounded-xl overflow-hidden border border-glass-border shadow-lg">
                   <Suspense
                     fallback={
-                      <div className="w-full h-full flex items-center justify-center bg-[var(--color-surface-900)] text-slate-400 text-sm">
+                      <div className="w-full h-full flex items-center justify-center bg-surface-900 text-slate-400 text-sm">
                         Loading map module...
                       </div>
                     }
@@ -139,11 +143,11 @@ export function DashboardPage() {
 
               {/* Report List panel */}
               <div
-                className={`w-full lg:w-80 bg-[var(--color-surface-800)] border-l border-[var(--color-glass-border)] overflow-hidden ${
-                  activeView !== 'list' ? 'hidden lg:block' : ''
+                className={`w-full lg:w-80 bg-surface-800 border-l border-glass-border overflow-hidden ${
+                  activeView !== "list" ? "hidden lg:block" : ""
                 }`}
               >
-                <div className="p-3 pb-2 border-b border-[var(--color-glass-border)]">
+                <div className="p-3 pb-2 border-b border-glass-border">
                   <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Reports ({reports.length})
                   </h3>

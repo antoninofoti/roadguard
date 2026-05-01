@@ -2,7 +2,7 @@
 # RoadGuard — Docker Compose (Local Development & Demo)
 #
 # Usage:
-#   1. cp .env.compose.example .env.compose
+#   1. cp .env.docker.example .env.docker
 #   2. Fill in VITE_FIREBASE_* variables
 #   3. docker compose up --build
 #
@@ -17,9 +17,10 @@
 # ═══════════════════════════════════════════════════════════════════
 
 services:
-
   # ── Operator Web Portal ────────────────────────────────────────────
   web-portal:
+    env_file:
+      - .env.docker
     build:
       context: ./web-portal
       dockerfile: Dockerfile
@@ -30,6 +31,11 @@ services:
         VITE_FIREBASE_STORAGE_BUCKET: ${VITE_FIREBASE_STORAGE_BUCKET}
         VITE_FIREBASE_MESSAGING_SENDER_ID: ${VITE_FIREBASE_MESSAGING_SENDER_ID}
         VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID}
+        VITE_AUTH_MODE: ${VITE_AUTH_MODE}
+        VITE_AUTH_EMULATOR_HOST: ${VITE_AUTH_EMULATOR_HOST}
+        VITE_AUTH_EMULATOR_PORT: ${VITE_AUTH_EMULATOR_PORT}
+        VITE_FIRESTORE_EMULATOR_HOST: ${VITE_FIRESTORE_EMULATOR_HOST}
+        VITE_FIRESTORE_EMULATOR_PORT: ${VITE_FIRESTORE_EMULATOR_PORT}
     image: roadguard/web-portal:latest
     container_name: roadguard-web-portal
     ports:
@@ -62,8 +68,13 @@ services:
       - roadguard
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c",
-             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3

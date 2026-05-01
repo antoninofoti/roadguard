@@ -1,0 +1,104 @@
+// .devcontainer/devcontainer.json
+// ─────────────────────────────────────────────────────────────────────────────
+// Dev Container specification for RoadGuard.
+//
+// Anyone with VS Code + Docker Desktop can open this project fully configured:
+//   1. Clone the repo
+//   2. Open in VS Code
+//   3. Click "Reopen in Container"
+//   → All extensions pre-installed, all IntelliSense working, zero host setup.
+//
+// Also compatible with GitHub Codespaces (cloud dev environment).
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  "name": "RoadGuard Dev",
+
+  // Build from our custom Dockerfile (Android SDK + NDK + Java + Node + Python)
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+
+  // Mount the workspace at the standard devcontainer path
+  "workspaceFolder": "/workspaces/RoadGuard",
+
+  // --privileged enables USB passthrough for `adb` to reach a physical Android device.
+  // Remove if you don't need hardware debugging (keeps the container rootless).
+  "runArgs": ["--privileged"],
+
+  // Persist Gradle download cache across container rebuilds (avoids re-downloading 500MB)
+  "mounts": [
+    "source=roadguard-gradle-cache,target=/home/vscode/.gradle,type=volume"
+  ],
+
+  // Non-root user created by the Microsoft base image
+  "remoteUser": "vscode",
+
+  // ── One-time setup after the container is created ─────────────────────────
+  // Installs Python deps into the two venvs + runs npm ci for the web-portal.
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  // ── VS Code customizations ────────────────────────────────────────────────
+  "customizations": {
+    "vscode": {
+
+      // Extensions automatically installed inside the container
+      "extensions": [
+        // ── Kotlin / Android ──────────────────────────────────────────────
+        "fwcd.kotlin",
+        // ── C / C++ (JNI bridge + Kalman filter) ─────────────────────────
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "ms-vscode.cmake-tools",
+        // ── Python ───────────────────────────────────────────────────────
+        "ms-python.python",
+        "ms-python.pylance",
+        // ── TypeScript / React / Web ──────────────────────────────────────
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "formulahendry.auto-rename-tag",
+        // ── Docker & Kubernetes ───────────────────────────────────────────
+        "ms-azuretools.vscode-docker",
+        "ms-kubernetes-tools.vscode-kubernetes-tools",
+        // ── General ───────────────────────────────────────────────────────
+        "EditorConfig.EditorConfig",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens"
+      ],
+
+      // Settings applied only inside the container (override host settings)
+      "settings": {
+
+        // ── Python ─────────────────────────────────────────────────────────
+        // Default interpreter: analysis/ venv (pyrightconfig.json in each
+        // sub-folder overrides this per-project).
+        "python.defaultInterpreterPath": "/opt/venvs/analysis/bin/python",
+        "python.analysis.extraPaths": [],
+        "python.terminal.activateEnvironment": false,
+
+        // ── C/C++ (JNI bridge): use the NDK clang toolchain ───────────────
+        "C_Cpp.default.compilerPath": "${env:ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
+        "C_Cpp.default.cStandard": "c11",
+        "C_Cpp.default.cppStandard": "c++17",
+        "cmake.ignoreCMakeListsMissing": true,
+
+        // ── CSS: teach the validator about TailwindCSS v4 at-rules ─────────
+        "css.customData": [".vscode/tailwind-directives.json"],
+
+        // ── ESLint ─────────────────────────────────────────────────────────
+        "eslint.workingDirectories": ["web-portal"],
+
+        // ── Editor: consistent formatting ──────────────────────────────────
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[kotlin]": {
+          "editor.defaultFormatter": null
+        },
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.python"
+        }
+      }
+    }
+  }
+}

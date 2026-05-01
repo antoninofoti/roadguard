@@ -1,0 +1,28 @@
+{
+  // analytics-api/pyrightconfig.json
+  // ────────────────────────────────────────────────────────────────────────────
+  // Pyright/Pylance config for the analytics-api/ FastAPI microservice
+  // (fastapi, uvicorn, pydantic, httpx, python-dotenv).
+  //
+  // Inside the Dev Container:
+  //   The venv at /opt/venvs/analytics-api is created by .devcontainer/Dockerfile
+  //   and populated by .devcontainer/post-create.sh (pip install -r requirements.txt).
+  //
+  // On the host (without Dev Container):
+  //   Activate your local conda/venv with the same packages and update
+  //   python.defaultInterpreterPath in .vscode/settings.json accordingly.
+  // ────────────────────────────────────────────────────────────────────────────
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+
+  // venvPath + venv tell Pyright where to find the virtualenv.
+  // The combination resolves to: /opt/venvs/analytics-api/
+  "venvPath": "/opt/venvs",
+  "venv": "analytics-api",
+
+  "typeCheckingMode": "basic",
+
+  // Include paths for the FastAPI application
+  "include": ["app"],
+  "exclude": ["**/__pycache__"]
+}

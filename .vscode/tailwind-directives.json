@@ -1,0 +1,59 @@
+{
+  // .vscode/tailwind-directives.json
+  // ─────────────────────────────────────────────────────────────────────────
+  // VS Code CSS custom data — teaches the built-in CSS validator about
+  // TailwindCSS v4 at-rules so they are no longer flagged as "Unknown at rule".
+  //
+  // TailwindCSS v4 moved from JavaScript config to a CSS-first config approach,
+  // introducing new at-rules: @theme, @utility, @variant, @source.
+  // The standard CSS language server doesn't know these, causing false warnings.
+  //
+  // Referenced in .vscode/settings.json → "css.customData"
+  // and in devcontainer.json → customizations.vscode.settings
+  // ─────────────────────────────────────────────────────────────────────────
+  "version": 1.1,
+  "atDirectives": [
+    {
+      "name": "@theme",
+      "description": "TailwindCSS v4: Define design tokens (colors, spacing, etc.) as CSS custom properties.",
+      "references": [
+        { "name": "Tailwind CSS v4 Docs", "url": "https://tailwindcss.com/docs/theme" }
+      ]
+    },
+    {
+      "name": "@utility",
+      "description": "TailwindCSS v4: Register a custom utility class.",
+      "references": [
+        { "name": "Tailwind CSS v4 Docs", "url": "https://tailwindcss.com/docs/adding-custom-styles" }
+      ]
+    },
+    {
+      "name": "@variant",
+      "description": "TailwindCSS v4: Define or extend a variant (e.g. hover, dark, custom breakpoints).",
+      "references": [
+        { "name": "Tailwind CSS v4 Docs", "url": "https://tailwindcss.com/docs/adding-custom-styles" }
+      ]
+    },
+    {
+      "name": "@source",
+      "description": "TailwindCSS v4: Explicitly tell Tailwind which files to scan for class names.",
+      "references": [
+        { "name": "Tailwind CSS v4 Docs", "url": "https://tailwindcss.com/docs/content-configuration" }
+      ]
+    },
+    {
+      "name": "@apply",
+      "description": "TailwindCSS: Apply one or more utility classes to a CSS rule.",
+      "references": [
+        { "name": "Tailwind CSS Docs", "url": "https://tailwindcss.com/docs/functions-and-directives#apply" }
+      ]
+    },
+    {
+      "name": "@config",
+      "description": "TailwindCSS v4: Load a JavaScript config file (legacy compatibility).",
+      "references": [
+        { "name": "Tailwind CSS v4 Docs", "url": "https://tailwindcss.com/docs/configuration" }
+      ]
+    }
+  ]
+}

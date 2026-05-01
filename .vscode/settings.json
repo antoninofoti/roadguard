@@ -1,6 +1,33 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "python-envs.defaultEnvManager": "ms-python.python:conda",
-    "python-envs.defaultPackageManager": "ms-python.python:conda",
-    "cmake.ignoreCMakeListsMissing": true
+  // ── General ────────────────────────────────────────────────────────────────
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+
+  // ── Java / Android Gradle ──────────────────────────────────────────────────
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "java.import.gradle.user.home": "/workspaces/RoadGuard/.gradle-local",
+  "java.import.gradle.wrapper.enabled": true,
+
+  // ── Python ────────────────────────────────────────────────────────────────
+  // Inside the Dev Container the interpreter is set to the analysis/ venv.
+  // pyrightconfig.json in each Python sub-project overrides this per-folder.
+  // On the host (without the container), update this path to your local env.
+  "python.defaultInterpreterPath": "/opt/venvs/analysis/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.terminal.activateEnvironment": false,
+
+  // ── C / C++ (JNI bridge) ──────────────────────────────────────────────────
+  // c_cpp_properties.json holds the full NDK includePath & compilerPath.
+  // This setting suppresses the "CMakeLists.txt not found" nag (CMake is
+  // driven by the Android Gradle plugin, not the VS Code CMake extension).
+  "cmake.ignoreCMakeListsMissing": true,
+
+  // ── CSS — TailwindCSS v4 support ──────────────────────────────────────────
+  // Teaches the CSS language server about @theme, @utility, @variant, @source.
+  // Without this file, TailwindCSS v4 at-rules are flagged as "Unknown at rule".
+  "css.customData": [".vscode/tailwind-directives.json"],
+
+  // ── ESLint ────────────────────────────────────────────────────────────────
+  // Scope ESLint to the web-portal sub-directory where eslint.config.js lives.
+  "eslint.workingDirectories": ["web-portal"]
 }

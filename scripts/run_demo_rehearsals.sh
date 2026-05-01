@@ -4,14 +4,25 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/output/statistics/demo_rehearsals"
 REPORT_FILE="$ROOT_DIR/docs/LIVE_DEMO_REHEARSAL_LOG.md"
+GRADLE_HOME_DEFAULT="$ROOT_DIR/.gradle-local"
+GRADLE_HOME="${GRADLE_USER_HOME:-$GRADLE_HOME_DEFAULT}"
 USE_DOCKER_TOOLING="${USE_DOCKER_TOOLING:-0}"
+RUN_START="${RUN_START:-1}"
+RUN_COUNT="${RUN_COUNT:-3}"
+
+if ! [[ "$RUN_START" =~ ^[0-9]+$ ]] || ! [[ "$RUN_COUNT" =~ ^[0-9]+$ ]] || [[ "$RUN_COUNT" -lt 1 ]]; then
+  echo "ERROR: RUN_START and RUN_COUNT must be positive integers (RUN_COUNT >= 1)." >&2
+  exit 1
+fi
+
+RUN_END=$((RUN_START + RUN_COUNT - 1))
 
 mkdir -p "$LOG_DIR"
 
 cat > "$REPORT_FILE" <<'EOF'
 # Live Demo Rehearsal Log
 
-Date: 2026-04-20
+Date: GENERATED_AT_RUNTIME
 Protocol source: docs/LIVE_DEMO_RUNBOOK.md
 
 Pre-rehearsal fix applied:
@@ -22,6 +33,9 @@ Pre-rehearsal fix applied:
 | Run | Start (UTC) | End (UTC) | Android | Web | API | RBAC | Overall | Failed Step | Root Cause | Mitigation |
 |---|---|---|---|---|---|---|---|---|---|---|
 EOF
+
+today_utc="$(date -u +"%Y-%m-%d")"
+sed -i "s/GENERATED_AT_RUNTIME/${today_utc}/" "$REPORT_FILE"
 
 run_web_checks() {
   if [[ "$USE_DOCKER_TOOLING" == "1" ]]; then
@@ -53,20 +67,22 @@ run_android_checks() {
     "com.example.roadguard.integration.EndToEndIntegrationTest"
   )
 
-  if (cd "$ROOT_DIR" && "${gradle_cmd[@]}") >"$log_file" 2>&1; then
+  mkdir -p "$GRADLE_HOME"
+
+  if (cd "$ROOT_DIR" && GRADLE_USER_HOME="$GRADLE_HOME" "${gradle_cmd[@]}") >>"$log_file" 2>&1; then
     return 0
   fi
 
   echo "[rehearsal] Android checks failed on first attempt. Retrying once..." >>"$log_file"
 
-  if (cd "$ROOT_DIR" && "${gradle_cmd[@]}") >>"$log_file" 2>&1; then
+  if (cd "$ROOT_DIR" && GRADLE_USER_HOME="$GRADLE_HOME" "${gradle_cmd[@]}") >>"$log_file" 2>&1; then
     return 0
   fi
 
   return 1
 }
 
-for run in 1 2 3; do
+for run in $(seq "$RUN_START" "$RUN_END"); do
   start_ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   failed_step="-"
   root_cause="-"
@@ -77,6 +93,27 @@ for run in 1 2 3; do
   web_log="$LOG_DIR/run${run}-web.log"
   api_log="$LOG_DIR/run${run}-api.log"
   rbac_log="$LOG_DIR/run${run}-rbac.log"
+
+  {
+    echo "Run: ${run}"
+    echo "Start: ${start_ts}"
+    echo "Step: Android"
+  } >"$android_log"
+  {
+    echo "Run: ${run}"
+    echo "Start: ${start_ts}"
+    echo "Step: Web"
+  } >"$web_log"
+  {
+    echo "Run: ${run}"
+    echo "Start: ${start_ts}"
+    echo "Step: API"
+  } >"$api_log"
+  {
+    echo "Run: ${run}"
+    echo "Start: ${start_ts}"
+    echo "Step: RBAC"
+  } >"$rbac_log"
 
   android_status="PASS"
   if ! run_android_checks "$android_log"; then
@@ -105,23 +142,33 @@ for run in 1 2 3; do
     m2=$((now_ms - 60*24*3600*1000))
     m3=$((now_ms - 90*24*3600*1000))
 
-    {
+    if {
       echo "--- HEALTH ---"
-      curl -sS http://127.0.0.1:8001/health
+      curl -sS http://127.0.0.1:8000/health
       echo
       echo "--- CLUSTERS ---"
-      curl -sS -X POST http://127.0.0.1:8001/api/v1/clusters \
+      curl -sS -X POST http://127.0.0.1:8000/api/v1/clusters \
         -H 'Content-Type: application/json' \
         -d '{"radius_meters":120,"reports":[{"id":"r1","latitude":45.4642,"longitude":9.1900,"fusedScore":0.84,"damageType":"pothole"},{"id":"r2","latitude":45.4646,"longitude":9.1904,"fusedScore":0.73,"damageType":"pothole"},{"id":"r3","latitude":45.4650,"longitude":9.1908,"fusedScore":0.79,"damageType":"bump"},{"id":"r4","latitude":41.9028,"longitude":12.4964,"fusedScore":0.52,"damageType":"roughness"}]}'
       echo
       echo "--- FORECAST ---"
-      curl -sS -X POST http://127.0.0.1:8001/api/v1/forecast \
+      curl -sS -X POST http://127.0.0.1:8000/api/v1/forecast \
         -H 'Content-Type: application/json' \
         -d "{\"trend_months\":6,\"reports\":[{\"id\":\"f1\",\"fusedScore\":0.61,\"timestampMs\":$m3},{\"id\":\"f2\",\"fusedScore\":0.68,\"timestampMs\":$m2},{\"id\":\"f3\",\"fusedScore\":0.72,\"timestampMs\":$m1},{\"id\":\"f4\",\"fusedScore\":0.75,\"timestampMs\":$now_ms}]}"
       echo
-    } >"$api_log" 2>&1
+    } >>"$api_log" 2>&1; then
+      :
+    else
+      api_status="FAIL"
+      overall="FAIL"
+      if [[ "$failed_step" == "-" ]]; then
+        failed_step="API"
+        root_cause="Analytics API endpoint smoke test failed"
+        mitigation="Inspect $api_log, restart API server, and re-run"
+      fi
+    fi
 
-    if ! grep -q '"status":"ok"' "$api_log" || ! grep -q '"cluster_count"' "$api_log" || ! grep -q '"trend"' "$api_log"; then
+    if [[ "$api_status" == "PASS" ]] && ( ! grep -q '"status":"ok"' "$api_log" || ! grep -q '"cluster_count"' "$api_log" || ! grep -q '"trend"' "$api_log" ); then
       api_status="FAIL"
       overall="FAIL"
       if [[ "$failed_step" == "-" ]]; then
@@ -132,6 +179,7 @@ for run in 1 2 3; do
     fi
   else
     api_status="SKIP"
+    echo "Skipped because a previous step failed (overall=FAIL)." >>"$api_log"
   fi
 
   rbac_status="PASS"
@@ -155,6 +203,7 @@ for run in 1 2 3; do
     fi
   else
     rbac_status="SKIP"
+    echo "Skipped because a previous step failed (overall=FAIL)." >>"$rbac_log"
   fi
 
   end_ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
@@ -164,17 +213,11 @@ done
 
 echo >> "$REPORT_FILE"
 echo "Artifacts:" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run1-android.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run1-web.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run1-api.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run1-rbac.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run2-android.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run2-web.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run2-api.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run2-rbac.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run3-android.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run3-web.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run3-api.log" >> "$REPORT_FILE"
-echo "- output/statistics/demo_rehearsals/run3-rbac.log" >> "$REPORT_FILE"
+for run in $(seq "$RUN_START" "$RUN_END"); do
+  echo "- output/statistics/demo_rehearsals/run${run}-android.log" >> "$REPORT_FILE"
+  echo "- output/statistics/demo_rehearsals/run${run}-web.log" >> "$REPORT_FILE"
+  echo "- output/statistics/demo_rehearsals/run${run}-api.log" >> "$REPORT_FILE"
+  echo "- output/statistics/demo_rehearsals/run${run}-rbac.log" >> "$REPORT_FILE"
+done
 
 echo "Rehearsal report generated at $REPORT_FILE"

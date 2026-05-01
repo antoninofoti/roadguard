@@ -308,18 +308,25 @@ class FusionEngine(
      * carry monotonic nanoseconds, so we retain a compatibility path.
      */
     private fun normalizeEventTimestampMs(rawTimestamp: Long): Long {
-        val epochUpperBoundMs = 10_000_000_000_000L
-        if (rawTimestamp < epochUpperBoundMs) {
+        val nowMs = System.currentTimeMillis()
+        val nowNano = System.nanoTime()
+
+        // Epoch milliseconds are expected to be within a realistic wall-clock range.
+        // Anything much smaller is likely a monotonic clock value.
+        val minEpochMs = 946_684_800_000L   // 2000-01-01
+        val maxEpochMs = 4_102_444_800_000L // 2100-01-01
+        if (rawTimestamp in minEpochMs..maxEpochMs) {
             return rawTimestamp
         }
 
-        val nowNano = System.nanoTime()
-        if (rawTimestamp > nowNano) {
-            return System.currentTimeMillis()
+        // Compatibility path for System.nanoTime() timestamps.
+        if (rawTimestamp > 0L) {
+            val ageMs = ((nowNano - rawTimestamp).coerceAtLeast(0L)) / 1_000_000L
+            return nowMs - ageMs
         }
 
-        val eventAgeMs = (nowNano - rawTimestamp) / 1_000_000
-        return System.currentTimeMillis() - eventAgeMs
+        // Fallback: never emit an obviously invalid timestamp.
+        return nowMs
     }
 
     /**

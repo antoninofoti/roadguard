@@ -39,7 +39,10 @@ service cloud.firestore {
      * guarding against client bugs and attacker-controlled clients.
      */
     function isValidReport(data) {
+      let allowedKeys = ['userId', 'status', 'damageType', 'fusedScore', 'severity', 'location', 'description', 'imageUrl', 'updatedAt', 'timestamp', 'detectionSource', 'cvConfidence', 'sensorConfidence', 'operatorId', 'resolvedAt', 'notes', 'operatorNotes', 'resolvedBy'];
       return
+        // Prevent Data Injection by limiting the allowed keys
+        data.keys().hasOnly(allowedKeys) &&
         // Required string fields
         data.keys().hasAll(['userId', 'status', 'damageType']) &&
         data.userId is string &&
@@ -117,8 +120,11 @@ service cloud.firestore {
     // ── Users Collection ────────────────────────────────────────────────
 
     match /users/{userId} {
-      /** Users can read and write only their own profile document. */
-      allow read, write: if isOwner(userId);
+      /** Users can read only their own profile document. */
+      allow read: if isOwner(userId);
+      
+      /** Users can write only their own profile document and only allowed fields. */
+      allow write: if isOwner(userId) && request.resource.data.keys().hasOnly(['uid', 'email', 'role']);
 
       /** Admins can read any user profile (for moderation). */
       allow read: if isAdmin();
@@ -137,7 +143,8 @@ service cloud.firestore {
       );
 
       allow create: if isAuth() &&
-        request.resource.data.userId == request.auth.uid;
+        request.resource.data.userId == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['userId', 'timestamp', 'accelX', 'accelY', 'accelZ', 'gyroX', 'gyroY', 'gyroZ', 'filteredAccelMagnitude', 'filteredGyroMagnitude', 'sessionId', 'location']);
 
       allow update, delete: if isAdmin();
     }

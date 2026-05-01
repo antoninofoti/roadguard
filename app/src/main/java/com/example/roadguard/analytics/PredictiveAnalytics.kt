@@ -93,12 +93,79 @@ class PredictiveAnalytics {
     // ==================== Spatial Clustering ====================
 
     /**
-     * Identify clusters of nearby reports using simple distance-based grouping.
+     * Count reports within a search radius of a target report.
+     * Used to detect high-density regions for adaptive clustering.
      *
-     * Uses a greedy nearest-neighbor approach:
-     * 1. Start with the first unassigned report as a cluster seed
-     * 2. Add all reports within [radiusMeters] to the cluster
-     * 3. Repeat until all reports are assigned
+     * @param target The reference report
+     * @param candidates List of candidate reports (typically all reports)
+     * @param searchRadiusMeters Search diameter in meters
+     * @return Number of candidates within searchRadiusMeters (excluding target)
+     */
+    private fun localDensity(
+        target: Report,
+        candidates: List<Report>,
+        searchRadiusMeters: Double = 100.0
+    ): Int {
+        if (target.location == null) return 0
+        return candidates.count { candidate ->
+            candidate.id != target.id &&
+                    candidate.location != null &&
+                    haversineDistance(target.location!!, candidate.location!!) <= searchRadiusMeters
+        }
+    }
+
+    /**
+     * Compute adaptive clustering radius based on spatial density of reports.
+     *
+     * High density (many reports close) → reduce radius to 70% of base (finer clusters)
+     * Low density → use base radius (faster convergence)
+     * Very sparse → increase to max (avoid singletons)
+     *
+     * This prevents loss of correlated reports in dense urban areas and premature
+     * clustering in rural/sparse areas.
+     *
+     * @param reports List of reports to analyze
+     * @param baseRadiusMeters Starting radius in meters
+     * @return Adaptive radius in meters, clamped to [30m, 500m]
+     */
+    private fun computeAdaptiveRadius(
+        reports: List<Report>,
+        baseRadiusMeters: Double
+    ): Double {
+        if (reports.size < 3) return baseRadiusMeters
+
+        val MIN_RADIUS = 30.0
+        val MAX_RADIUS = 500.0
+        val DENSITY_THRESHOLD = 2
+
+        // Sample density: count neighbors within 100m for first 5 reports
+        val sampleSize = minOf(5, reports.size)
+        val avgNeighbors = (0 until sampleSize)
+            .map { i -> localDensity(reports[i], reports, 100.0) }
+            .average()
+
+        // If average > 2 neighbors within 100m → dense region → reduce radius
+        return when {
+            avgNeighbors >= DENSITY_THRESHOLD ->
+                maxOf(MIN_RADIUS, baseRadiusMeters * 0.7)
+            avgNeighbors < 0.5 ->
+                minOf(MAX_RADIUS, baseRadiusMeters * 1.3)
+            else ->
+                baseRadiusMeters
+        }
+    }
+
+    /**
+     * Identify clusters of nearby reports using density-adaptive distance-based grouping.
+     *
+     * Uses a greedy nearest-neighbor approach with adaptive radius:
+     * 1. Compute effective radius based on report spatial density
+     * 2. Start with the first unassigned report as a cluster seed
+     * 3. Add all reports within effective radius to the cluster
+     * 4. Repeat until all reports are assigned
+     *
+     * Prevents under-clustering in dense areas (e.g., urban pothole hotspots)
+     * and over-clustering in sparse areas.
      */
     fun identifyDamageClusters(
         reports: List<Report>,
@@ -106,6 +173,9 @@ class PredictiveAnalytics {
     ): List<DamageCluster> {
         val geoReports = reports.filter { it.location != null }
         if (geoReports.isEmpty()) return emptyList()
+
+        // Compute adaptive radius based on spatial density
+        val effectiveRadius = computeAdaptiveRadius(geoReports, radiusMeters)
 
         val unassigned = geoReports.toMutableList()
         val clusters = mutableListOf<DamageCluster>()
@@ -115,12 +185,12 @@ class PredictiveAnalytics {
             val seed = unassigned.removeAt(0)
             val clusterReports = mutableListOf(seed)
 
-            // Find all reports within radius of seed
+            // Find all reports within adaptive radius of seed
             val iterator = unassigned.iterator()
             while (iterator.hasNext()) {
                 val candidate = iterator.next()
                 val distance = haversineDistance(seed.location!!, candidate.location!!)
-                if (distance <= radiusMeters) {
+                if (distance <= effectiveRadius) {
                     clusterReports.add(candidate)
                     iterator.remove()
                 }
@@ -137,7 +207,7 @@ class PredictiveAnalytics {
                     .maxByOrNull { it.value }?.key ?: "unknown"
 
                 // Effective radius = max distance from centroid
-                val effectiveRadius = clusterReports
+                val effectiveClusterRadius = clusterReports
                     .mapNotNull { it.location }
                     .maxOfOrNull { haversineDistance(center, it) } ?: radiusMeters
 
@@ -146,7 +216,7 @@ class PredictiveAnalytics {
                         id = clusterId++,
                         center = center,
                         reports = clusterReports.map { it.id },
-                        radiusMeters = effectiveRadius,
+                        radiusMeters = effectiveClusterRadius,
                         avgFusedScore = avgScore,
                         dominantType = dominantType
                     )

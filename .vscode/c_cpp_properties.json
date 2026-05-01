@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "name": "Android NDK (Dev Container)",
+      "compilerPath": "${env:ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang",
+      "includePath": [
+        "${workspaceFolder}/app/src/main/cpp",
+        "${env:ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include",
+        "${env:ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/aarch64-linux-android"
+      ],
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "clang-arm64",
+      "defines": [
+        "__ANDROID__",
+        "__ANDROID_API__=26",
+        "ANDROID"
+      ]
+    }
+  ],
+  "version": 4
+}

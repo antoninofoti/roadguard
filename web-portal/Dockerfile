@@ -13,7 +13,7 @@ FROM cgr.dev/chainguard/wolfi-base:latest AS builder
 WORKDIR /app
 
 # Hardened Wolfi base with explicit Node toolchain package versions.
-RUN apk add --no-cache nodejs-24 npm
+RUN apk add --no-cache nodejs-24 npm bash
 
 # Copy lock files first (maximises Docker layer caching)
 COPY package.json package-lock.json ./
@@ -35,7 +35,7 @@ LABEL org.opencontainers.image.description="React SPA served by Nginx for the Ro
 LABEL org.opencontainers.image.version="1.0.0"
 
 # Copy built assets from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/dist-app /usr/share/nginx/html
 
 # Custom Nginx config for SPA routing + security headers + proxy to analytics
 COPY nginx.conf /etc/nginx/conf.d/default.conf

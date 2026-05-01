@@ -1,0 +1,1216 @@
+{
+  "branch": "Vision",
+  "model": "SYNTHETIC",
+  "frames_dir": "data/thessaloniki/frames",
+  "synthetic": true,
+  "n_frames": 200,
+  "conf_threshold": 0.5,
+  "best_metrics": {
+    "precision": 0.6825,
+    "recall": 0.7167,
+    "f1": 0.6992,
+    "accuracy": 0.815
+  },
+  "per_frame": [
+    {
+      "frame_id": "frame_0000.jpg",
+      "gt_label": 0,
+      "conf": 0.1975,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0001.jpg",
+      "gt_label": 1,
+      "conf": 0.0424,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0002.jpg",
+      "gt_label": 1,
+      "conf": 0.8545,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0003.jpg",
+      "gt_label": 0,
+      "conf": 0.1669,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0004.jpg",
+      "gt_label": 0,
+      "conf": 0.3702,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0005.jpg",
+      "gt_label": 0,
+      "conf": 0.5759,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0006.jpg",
+      "gt_label": 0,
+      "conf": 0.2842,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0007.jpg",
+      "gt_label": 1,
+      "conf": 0.4368,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0008.jpg",
+      "gt_label": 0,
+      "conf": 0.0876,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0009.jpg",
+      "gt_label": 1,
+      "conf": 0.5675,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0010.jpg",
+      "gt_label": 0,
+      "conf": 0.4354,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0011.jpg",
+      "gt_label": 1,
+      "conf": 0.6982,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0012.jpg",
+      "gt_label": 1,
+      "conf": 0.602,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0013.jpg",
+      "gt_label": 0,
+      "conf": 0.1967,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0014.jpg",
+      "gt_label": 0,
+      "conf": 0.1406,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0015.jpg",
+      "gt_label": 0,
+      "conf": 0.1744,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0016.jpg",
+      "gt_label": 0,
+      "conf": 0.0629,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0017.jpg",
+      "gt_label": 0,
+      "conf": 0.3541,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0018.jpg",
+      "gt_label": 0,
+      "conf": 0.3513,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0019.jpg",
+      "gt_label": 0,
+      "conf": 0.6749,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0020.jpg",
+      "gt_label": 0,
+      "conf": 0.212,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0021.jpg",
+      "gt_label": 0,
+      "conf": 0.2856,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0022.jpg",
+      "gt_label": 0,
+      "conf": 0.6722,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0023.jpg",
+      "gt_label": 0,
+      "conf": 0.0966,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0024.jpg",
+      "gt_label": 0,
+      "conf": 0.7575,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0025.jpg",
+      "gt_label": 1,
+      "conf": 0.6626,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0026.jpg",
+      "gt_label": 0,
+      "conf": 0.3528,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0027.jpg",
+      "gt_label": 0,
+      "conf": 0.3663,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0028.jpg",
+      "gt_label": 0,
+      "conf": 0.0405,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0029.jpg",
+      "gt_label": 0,
+      "conf": 0.0726,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0030.jpg",
+      "gt_label": 0,
+      "conf": 0.3133,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0031.jpg",
+      "gt_label": 0,
+      "conf": 0.1357,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0032.jpg",
+      "gt_label": 0,
+      "conf": 0.6149,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0033.jpg",
+      "gt_label": 1,
+      "conf": 0.9348,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0034.jpg",
+      "gt_label": 1,
+      "conf": 0.4361,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0035.jpg",
+      "gt_label": 1,
+      "conf": 0.8368,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0036.jpg",
+      "gt_label": 0,
+      "conf": 0.4062,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0037.jpg",
+      "gt_label": 0,
+      "conf": 0.1377,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0038.jpg",
+      "gt_label": 0,
+      "conf": 0.3855,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0039.jpg",
+      "gt_label": 0,
+      "conf": 0.1944,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0040.jpg",
+      "gt_label": 0,
+      "conf": 0.6794,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0041.jpg",
+      "gt_label": 0,
+      "conf": 0.0187,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0042.jpg",
+      "gt_label": 0,
+      "conf": 0.6057,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0043.jpg",
+      "gt_label": 1,
+      "conf": 0.0768,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0044.jpg",
+      "gt_label": 0,
+      "conf": 0.1561,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0045.jpg",
+      "gt_label": 0,
+      "conf": 0.4314,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0046.jpg",
+      "gt_label": 0,
+      "conf": 0.0372,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0047.jpg",
+      "gt_label": 0,
+      "conf": 0.422,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0048.jpg",
+      "gt_label": 0,
+      "conf": 0.1201,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0049.jpg",
+      "gt_label": 0,
+      "conf": 0.661,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0050.jpg",
+      "gt_label": 1,
+      "conf": 0.8805,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0051.jpg",
+      "gt_label": 1,
+      "conf": 0.7716,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0052.jpg",
+      "gt_label": 1,
+      "conf": 0.2967,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0053.jpg",
+      "gt_label": 1,
+      "conf": 0.0485,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0054.jpg",
+      "gt_label": 0,
+      "conf": 0.0168,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0055.jpg",
+      "gt_label": 1,
+      "conf": 0.3734,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0056.jpg",
+      "gt_label": 0,
+      "conf": 0.4288,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0057.jpg",
+      "gt_label": 0,
+      "conf": 0.1152,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0058.jpg",
+      "gt_label": 0,
+      "conf": 0.0202,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0059.jpg",
+      "gt_label": 0,
+      "conf": 0.4013,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0060.jpg",
+      "gt_label": 0,
+      "conf": 0.4021,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0061.jpg",
+      "gt_label": 0,
+      "conf": 0.3474,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0062.jpg",
+      "gt_label": 1,
+      "conf": 0.0425,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0063.jpg",
+      "gt_label": 0,
+      "conf": 0.4216,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0064.jpg",
+      "gt_label": 0,
+      "conf": 0.374,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0065.jpg",
+      "gt_label": 0,
+      "conf": 0.2697,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0066.jpg",
+      "gt_label": 0,
+      "conf": 0.1396,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0067.jpg",
+      "gt_label": 1,
+      "conf": 0.9387,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0068.jpg",
+      "gt_label": 0,
+      "conf": 0.1033,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0069.jpg",
+      "gt_label": 1,
+      "conf": 0.8211,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0070.jpg",
+      "gt_label": 1,
+      "conf": 0.8277,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0071.jpg",
+      "gt_label": 0,
+      "conf": 0.3219,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0072.jpg",
+      "gt_label": 0,
+      "conf": 0.0557,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0073.jpg",
+      "gt_label": 1,
+      "conf": 0.709,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0074.jpg",
+      "gt_label": 1,
+      "conf": 0.8151,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0075.jpg",
+      "gt_label": 1,
+      "conf": 0.9199,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0076.jpg",
+      "gt_label": 1,
+      "conf": 0.8036,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0077.jpg",
+      "gt_label": 0,
+      "conf": 0.4348,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0078.jpg",
+      "gt_label": 0,
+      "conf": 0.362,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0079.jpg",
+      "gt_label": 0,
+      "conf": 0.7376,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0080.jpg",
+      "gt_label": 1,
+      "conf": 0.8818,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0081.jpg",
+      "gt_label": 0,
+      "conf": 0.2727,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0082.jpg",
+      "gt_label": 0,
+      "conf": 0.1857,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0083.jpg",
+      "gt_label": 0,
+      "conf": 0.2934,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0084.jpg",
+      "gt_label": 0,
+      "conf": 0.1115,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0085.jpg",
+      "gt_label": 0,
+      "conf": 0.7263,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0086.jpg",
+      "gt_label": 1,
+      "conf": 0.5766,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0087.jpg",
+      "gt_label": 0,
+      "conf": 0.1397,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0088.jpg",
+      "gt_label": 1,
+      "conf": 0.9184,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0089.jpg",
+      "gt_label": 0,
+      "conf": 0.5545,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0090.jpg",
+      "gt_label": 0,
+      "conf": 0.5261,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0091.jpg",
+      "gt_label": 1,
+      "conf": 0.7865,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0092.jpg",
+      "gt_label": 1,
+      "conf": 0.227,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0093.jpg",
+      "gt_label": 0,
+      "conf": 0.0196,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0094.jpg",
+      "gt_label": 1,
+      "conf": 0.6447,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0095.jpg",
+      "gt_label": 0,
+      "conf": 0.0222,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0096.jpg",
+      "gt_label": 0,
+      "conf": 0.0458,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0097.jpg",
+      "gt_label": 0,
+      "conf": 0.5251,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0098.jpg",
+      "gt_label": 0,
+      "conf": 0.4062,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0099.jpg",
+      "gt_label": 0,
+      "conf": 0.3508,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0100.jpg",
+      "gt_label": 0,
+      "conf": 0.0605,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0101.jpg",
+      "gt_label": 0,
+      "conf": 0.3859,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0102.jpg",
+      "gt_label": 0,
+      "conf": 0.2878,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0103.jpg",
+      "gt_label": 0,
+      "conf": 0.215,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0104.jpg",
+      "gt_label": 1,
+      "conf": 0.643,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0105.jpg",
+      "gt_label": 0,
+      "conf": 0.1708,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0106.jpg",
+      "gt_label": 0,
+      "conf": 0.427,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0107.jpg",
+      "gt_label": 1,
+      "conf": 0.7424,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0108.jpg",
+      "gt_label": 0,
+      "conf": 0.2937,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0109.jpg",
+      "gt_label": 0,
+      "conf": 0.2848,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0110.jpg",
+      "gt_label": 0,
+      "conf": 0.0911,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0111.jpg",
+      "gt_label": 0,
+      "conf": 0.0594,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0112.jpg",
+      "gt_label": 1,
+      "conf": 0.588,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0113.jpg",
+      "gt_label": 1,
+      "conf": 0.0618,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0114.jpg",
+      "gt_label": 0,
+      "conf": 0.2672,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0115.jpg",
+      "gt_label": 1,
+      "conf": 0.868,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0116.jpg",
+      "gt_label": 1,
+      "conf": 0.786,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0117.jpg",
+      "gt_label": 0,
+      "conf": 0.2542,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0118.jpg",
+      "gt_label": 1,
+      "conf": 0.2352,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0119.jpg",
+      "gt_label": 0,
+      "conf": 0.2215,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0120.jpg",
+      "gt_label": 1,
+      "conf": 0.9225,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0121.jpg",
+      "gt_label": 1,
+      "conf": 0.5851,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0122.jpg",
+      "gt_label": 0,
+      "conf": 0.3021,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0123.jpg",
+      "gt_label": 0,
+      "conf": 0.3431,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0124.jpg",
+      "gt_label": 0,
+      "conf": 0.1415,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0125.jpg",
+      "gt_label": 0,
+      "conf": 0.4213,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0126.jpg",
+      "gt_label": 1,
+      "conf": 0.7033,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0127.jpg",
+      "gt_label": 1,
+      "conf": 0.9245,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0128.jpg",
+      "gt_label": 0,
+      "conf": 0.444,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0129.jpg",
+      "gt_label": 0,
+      "conf": 0.0533,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0130.jpg",
+      "gt_label": 0,
+      "conf": 0.0549,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0131.jpg",
+      "gt_label": 0,
+      "conf": 0.0055,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0132.jpg",
+      "gt_label": 0,
+      "conf": 0.1329,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0133.jpg",
+      "gt_label": 0,
+      "conf": 0.1359,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0134.jpg",
+      "gt_label": 1,
+      "conf": 0.0498,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0135.jpg",
+      "gt_label": 0,
+      "conf": 0.1278,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0136.jpg",
+      "gt_label": 0,
+      "conf": 0.4496,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0137.jpg",
+      "gt_label": 1,
+      "conf": 0.0407,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0138.jpg",
+      "gt_label": 0,
+      "conf": 0.1084,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0139.jpg",
+      "gt_label": 1,
+      "conf": 0.0892,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0140.jpg",
+      "gt_label": 1,
+      "conf": 0.8125,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0141.jpg",
+      "gt_label": 0,
+      "conf": 0.2727,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0142.jpg",
+      "gt_label": 0,
+      "conf": 0.5792,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0143.jpg",
+      "gt_label": 0,
+      "conf": 0.4175,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0144.jpg",
+      "gt_label": 0,
+      "conf": 0.7125,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0145.jpg",
+      "gt_label": 0,
+      "conf": 0.0562,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0146.jpg",
+      "gt_label": 0,
+      "conf": 0.2835,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0147.jpg",
+      "gt_label": 0,
+      "conf": 0.3306,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0148.jpg",
+      "gt_label": 0,
+      "conf": 0.3195,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0149.jpg",
+      "gt_label": 0,
+      "conf": 0.0245,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0150.jpg",
+      "gt_label": 1,
+      "conf": 0.5669,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0151.jpg",
+      "gt_label": 0,
+      "conf": 0.0413,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0152.jpg",
+      "gt_label": 0,
+      "conf": 0.2064,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0153.jpg",
+      "gt_label": 0,
+      "conf": 0.2576,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0154.jpg",
+      "gt_label": 1,
+      "conf": 0.9284,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0155.jpg",
+      "gt_label": 0,
+      "conf": 0.2922,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0156.jpg",
+      "gt_label": 0,
+      "conf": 0.2288,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0157.jpg",
+      "gt_label": 1,
+      "conf": 0.7397,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0158.jpg",
+      "gt_label": 0,
+      "conf": 0.1371,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0159.jpg",
+      "gt_label": 1,
+      "conf": 0.7944,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0160.jpg",
+      "gt_label": 0,
+      "conf": 0.0979,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0161.jpg",
+      "gt_label": 0,
+      "conf": 0.0162,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0162.jpg",
+      "gt_label": 0,
+      "conf": 0.1015,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0163.jpg",
+      "gt_label": 0,
+      "conf": 0.3159,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0164.jpg",
+      "gt_label": 0,
+      "conf": 0.1423,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0165.jpg",
+      "gt_label": 1,
+      "conf": 0.7697,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0166.jpg",
+      "gt_label": 0,
+      "conf": 0.2307,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0167.jpg",
+      "gt_label": 0,
+      "conf": 0.4145,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0168.jpg",
+      "gt_label": 0,
+      "conf": 0.3599,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0169.jpg",
+      "gt_label": 0,
+      "conf": 0.7528,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0170.jpg",
+      "gt_label": 0,
+      "conf": 0.5309,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0171.jpg",
+      "gt_label": 0,
+      "conf": 0.1504,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0172.jpg",
+      "gt_label": 0,
+      "conf": 0.601,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0173.jpg",
+      "gt_label": 0,
+      "conf": 0.3854,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0174.jpg",
+      "gt_label": 0,
+      "conf": 0.5545,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0175.jpg",
+      "gt_label": 0,
+      "conf": 0.4313,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0176.jpg",
+      "gt_label": 0,
+      "conf": 0.1399,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0177.jpg",
+      "gt_label": 0,
+      "conf": 0.1745,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0178.jpg",
+      "gt_label": 1,
+      "conf": 0.5543,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0179.jpg",
+      "gt_label": 0,
+      "conf": 0.0747,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0180.jpg",
+      "gt_label": 0,
+      "conf": 0.2502,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0181.jpg",
+      "gt_label": 0,
+      "conf": 0.0637,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0182.jpg",
+      "gt_label": 1,
+      "conf": 0.036,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0183.jpg",
+      "gt_label": 1,
+      "conf": 0.7235,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0184.jpg",
+      "gt_label": 0,
+      "conf": 0.5625,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0185.jpg",
+      "gt_label": 0,
+      "conf": 0.1314,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0186.jpg",
+      "gt_label": 1,
+      "conf": 0.7846,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0187.jpg",
+      "gt_label": 0,
+      "conf": 0.3796,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0188.jpg",
+      "gt_label": 0,
+      "conf": 0.3016,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0189.jpg",
+      "gt_label": 0,
+      "conf": 0.165,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0190.jpg",
+      "gt_label": 0,
+      "conf": 0.38,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0191.jpg",
+      "gt_label": 1,
+      "conf": 0.8575,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0192.jpg",
+      "gt_label": 1,
+      "conf": 0.2642,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0193.jpg",
+      "gt_label": 0,
+      "conf": 0.2245,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0194.jpg",
+      "gt_label": 0,
+      "conf": 0.1793,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0195.jpg",
+      "gt_label": 0,
+      "conf": 0.0799,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0196.jpg",
+      "gt_label": 1,
+      "conf": 0.0112,
+      "pred": 0
+    },
+    {
+      "frame_id": "frame_0197.jpg",
+      "gt_label": 1,
+      "conf": 0.7293,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0198.jpg",
+      "gt_label": 1,
+      "conf": 0.5529,
+      "pred": 1
+    },
+    {
+      "frame_id": "frame_0199.jpg",
+      "gt_label": 1,
+      "conf": 0.8035,
+      "pred": 1
+    }
+  ]
+}

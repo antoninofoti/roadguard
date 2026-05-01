@@ -1,6 +1,8 @@
 ## IDE and OS
 *.iml
 .gradle
+.gradle-local
+.android-sdk
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
@@ -17,18 +19,23 @@
 local.properties
 /sdk/build/
 
-## Documentation workspace (current project policy)
+## Documentation workspace
+/docs/
+
+## LaTeX and build artifacts
+*.tex
 *.pdf
-*.md
-/docs/*
-!docs/PRELIMINARY_PREFLIGHT_REPORT.md
-!docs/thesis_latex/
-docs/thesis_latex/*
-!docs/thesis_latex/chapters/
-docs/thesis_latex/chapters/*
-!docs/thesis_latex/chapters/10_testing.tex
-!docs/thesis_latex/chapters/12_conclusion.tex
-!docs/thesis_latex/chapters/D_methodological_protocol.tex
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
 
 ## Python caches
 __pycache__/
@@ -36,3 +43,6 @@ __pycache__/
 
 ## Logs
 *.log
+
+## Local environment secrets
+.env.docker

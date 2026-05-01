@@ -4,10 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "vite --host 127.0.0.1 --port 4501 --strictPort",
+    "build": "npm run build:validate-env && tsc -b && vite build",
+    "build:validate-env": "bash scripts/validate-firebase-env.sh .env.production",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "vite preview --host 127.0.0.1 --port 4501 --strictPort",
     "auth:emulator:test": "npx -y firebase-tools --config ../firebase.json emulators:exec --project roadguard-demo --only auth,firestore \"node scripts/auth-emulator-login-check.mjs && node scripts/rbac-rules-check.mjs\"",
     "auth:emulator:test:repeat": "npm run auth:emulator:test && npm run auth:emulator:test"
   },

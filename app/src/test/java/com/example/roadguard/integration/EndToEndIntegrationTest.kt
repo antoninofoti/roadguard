@@ -41,7 +41,7 @@ class EndToEndIntegrationTest {
         var sensorAnomalyType: AnomalyType? = null
         
         // 3. Fill the window with baseline readings (50 samples of normal driving)
-        //    Use System.nanoTime() so FusionEngine temporal matching can work.
+        //    Use epoch millis so temporal matching aligns with FusionEngine CV timestamps.
         for (i in 0 until 50) {
             val baseAccelMag = accelFilter.updateAndGetMagnitude(
                 0f + Random.nextFloat() * 0.1f - 0.05f,
@@ -53,7 +53,7 @@ class EndToEndIntegrationTest {
                 0f,
                 0f
             )
-            anomalyDetector.addReading(baseAccelMag, baseGyroMag, System.nanoTime())
+            anomalyDetector.addReading(baseAccelMag, baseGyroMag, System.currentTimeMillis())
             Thread.sleep(1) // Small delay for time progression
         }
         
@@ -61,7 +61,11 @@ class EndToEndIntegrationTest {
         for (i in 0 until 4) {
             val potholeAccelMag = accelFilter.updateAndGetMagnitude(0f, 0f, 45.0f)
             val potholeGyroMag = gyroFilter.updateAndGetMagnitude(15.0f, 0f, 0f)
-            val event = anomalyDetector.addReading(potholeAccelMag, potholeGyroMag, System.nanoTime())
+            val event = anomalyDetector.addReading(
+                potholeAccelMag,
+                potholeGyroMag,
+                System.currentTimeMillis()
+            )
             
             if (event != null) {
                 println("  Sensor Anomaly Detected: ${event.type} (conf=${event.confidence})")

@@ -1,0 +1,53 @@
+{
+  "branch": "IMU",
+  "dataset": "SYNTHETIC",
+  "synthetic": true,
+  "n_samples": 10000,
+  "n_windows": 199,
+  "window_size": 100,
+  "step_size": 50,
+  "best_threshold": 11.0,
+  "best_metrics": {
+    "precision": 0.6667,
+    "recall": 1.0,
+    "f1": 0.8,
+    "accuracy": 0.8492
+  },
+  "threshold_sweep": [
+    {
+      "threshold": 9.0,
+      "precision": 0.3015,
+      "recall": 1.0,
+      "f1": 0.4633,
+      "accuracy": 0.3015
+    },
+    {
+      "threshold": 10.0,
+      "precision": 0.3015,
+      "recall": 1.0,
+      "f1": 0.4633,
+      "accuracy": 0.3015
+    },
+    {
+      "threshold": 11.0,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "accuracy": 0.8492
+    },
+    {
+      "threshold": 12.0,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "accuracy": 0.8492
+    },
+    {
+      "threshold": 15.0,
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "accuracy": 0.8492
+    }
+  ]
+}

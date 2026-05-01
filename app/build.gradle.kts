@@ -1,5 +1,5 @@
-import java.util.Properties
 import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -10,9 +10,11 @@ plugins {
 
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
+
 if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
 }
+
 val isCi = System.getenv("CI") == "true"
 
 android {
@@ -23,16 +25,14 @@ android {
         applicationId = "com.example.roadguard"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 4
+        versionName = "1.0.0-demo"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY") ?: ""
 
         // Phase G.4 — NDK/JNI: native Kalman filter in C
-        ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
-        }
+        ndk { abiFilters += listOf("arm64-v8a") }
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++17"
@@ -49,10 +49,7 @@ android {
         }
     }
 
-
-    testOptions {
-        unitTests.isReturnDefaultValues = true
-    }
+    testOptions { unitTests.isReturnDefaultValues = true }
 
     lint {
         // Keep local lint strict, but avoid failing CI while legacy issues are being burned down.
@@ -67,10 +64,11 @@ android {
             enableUnitTestCoverage = true
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
             )
         }
     }
@@ -78,29 +76,20 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildFeatures {
-        compose = true
-    }
+    buildFeatures { compose = true }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "**/libc++_shared.so"
             pickFirsts += "**/lib*//*/*.so"
         }
-        jniLibs {
-            useLegacyPackaging = true
-        }
+        jniLibs { useLegacyPackaging = true }
     }
 }
 
-kotlin {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
-    }
-}
+kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11) } }
 
 dependencies {
-
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.2")
     implementation("androidx.activity:activity-compose:1.9.0")
@@ -169,9 +158,7 @@ dependencies {
 apply(plugin = "com.google.gms.google-services")
 
 // ── JaCoCo Configuration ──────────────────────────────────────
-jacoco {
-    toolVersion = "0.8.12"
-}
+jacoco { toolVersion = "0.8.12" }
 
 tasks.register<JacocoReport>("jacocoTestReport") {
     dependsOn("testDebugUnitTest")
@@ -180,40 +167,43 @@ tasks.register<JacocoReport>("jacocoTestReport") {
         xml.required.set(true)
         html.required.set(true)
         html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/jacocoTestReport/html"))
-        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacocoTestReport/jacocoTestReport.xml"))
+        xml.outputLocation.set(
+                layout.buildDirectory.file("reports/jacoco/jacocoTestReport/jacocoTestReport.xml")
+        )
     }
 
     val mainSrc = "${project.projectDir}/src/main/java"
     sourceDirectories.setFrom(files(mainSrc))
 
-    val debugTree = fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
-        exclude(
-            "**/R.class",
-            "**/R$*.class",
-            "**/BuildConfig.*",
-            "**/Manifest*.*",
-            "**/*Test*.*",
-            "android/**/*.*",
-            // Compose generated
-            "**/*ComposableSingletons*.*",
-            "**/*Kt$*.*",
-            // Navigation & UI
-            "**/navigation/**",
-            "**/view/**",
-            "**/home/**",
-            "**/ui/**",
-            "**/auth/**",
-            "**/services/**",
-            "**/operator/Operator*Screen*.*"
-        )
-    }
+    val debugTree =
+            fileTree("${layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+                exclude(
+                        "**/R.class",
+                        "**/R$*.class",
+                        "**/BuildConfig.*",
+                        "**/Manifest*.*",
+                        "**/*Test*.*",
+                        "android/**/*.*",
+                        // Compose generated
+                        "**/*ComposableSingletons*.*",
+                        "**/*Kt$*.*",
+                        // Navigation & UI
+                        "**/navigation/**",
+                        "**/view/**",
+                        "**/home/**",
+                        "**/ui/**",
+                        "**/auth/**",
+                        "**/services/**",
+                        "**/operator/Operator*Screen*.*"
+                )
+            }
     classDirectories.setFrom(files(debugTree))
 
     executionData.setFrom(
-        fileTree(layout.buildDirectory) {
-            include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
-            include("jacoco/testDebugUnitTest.exec")
-        }
+            fileTree(layout.buildDirectory) {
+                include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+                include("jacoco/testDebugUnitTest.exec")
+            }
     )
 }
 
@@ -222,10 +212,7 @@ detekt {
     config.setFrom(rootProject.files("config/detekt/detekt.yml"))
     buildUponDefaultConfig = true
     allRules = false
-    source.setFrom(
-        "src/main/java",
-        "src/main/kotlin"
-    )
+    source.setFrom("src/main/java", "src/main/kotlin")
 }
 
 tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {

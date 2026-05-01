@@ -23,7 +23,7 @@ import java.nio.channels.FileChannel
 class PotholeDetectionHelper(context: Context) {
 
     companion object {
-        private const val MODEL_NAME = "pothole-y8objdect_float16.tflite"
+        private const val MODEL_NAME = "roadguard_model.tflite"
         private const val INPUT_IMAGE_WIDTH = 640
         private const val INPUT_IMAGE_HEIGHT = 640
 
@@ -65,8 +65,8 @@ class PotholeDetectionHelper(context: Context) {
         var tensorImage = TensorImage.fromBitmap(processedBitmap)
         tensorImage = imageProcessor.process(tensorImage)
 
-        // CORRECT: YOLOv8 output: [1, 6, 8400] (6: x, y, w, h, conf, class; 8400: boxes)
-        val outputBuffer = Array(1) { Array(6) { FloatArray(8400) } }
+        // YOLOv8 output: [1, 5, 8400] for 1 class (5: x, y, w, h, class_0_conf; 8400: boxes)
+        val outputBuffer = Array(1) { Array(5) { FloatArray(8400) } }
 
         interpreter?.run(tensorImage.buffer, outputBuffer)
 

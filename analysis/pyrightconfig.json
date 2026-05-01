@@ -1,0 +1,27 @@
+{
+  // analysis/pyrightconfig.json
+  // ────────────────────────────────────────────────────────────────────────────
+  // Pyright/Pylance config for the analysis/ scripts (numpy, pandas, matplotlib,
+  // seaborn, Pillow, opencv-python-headless, scikit-learn, scipy, tqdm).
+  //
+  // Inside the Dev Container:
+  //   The venv at /opt/venvs/analysis is created by .devcontainer/Dockerfile
+  //   and populated by .devcontainer/post-create.sh (pip install -r requirements.txt).
+  //
+  // On the host (without Dev Container):
+  //   Activate your local conda/venv with the same packages and update
+  //   python.defaultInterpreterPath in .vscode/settings.json accordingly.
+  // ────────────────────────────────────────────────────────────────────────────
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+
+  // venvPath + venv tell Pyright where to find the virtualenv.
+  // The combination resolves to: /opt/venvs/analysis/
+  "venvPath": "/opt/venvs",
+  "venv": "analysis",
+
+  "typeCheckingMode": "basic",
+
+  // Suppress noisy errors that are out of scope for analysis scripts
+  "reportMissingModuleSource": "none"
+}

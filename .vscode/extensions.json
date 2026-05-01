@@ -1,0 +1,39 @@
+{
+  // .vscode/extensions.json
+  // ─────────────────────────────────────────────────────────────────────────
+  // Recommended extensions for the RoadGuard workspace.
+  //
+  // VS Code shows an "Install Recommended Extensions" prompt on first open.
+  // Inside the Dev Container these are installed automatically by devcontainer.json.
+  // On the host (non-container mode), VS Code offers to install them on demand.
+  // ─────────────────────────────────────────────────────────────────────────
+  "recommendations": [
+    // ── Kotlin / Android ───────────────────────────────────────────────────
+    "fwcd.kotlin",
+
+    // ── C / C++ — JNI bridge (jni_bridge.cpp, kalman_filter.c) ───────────
+    "ms-vscode.cpptools",
+    "ms-vscode.cpptools-extension-pack",
+    "ms-vscode.cmake-tools",
+
+    // ── Python — analysis/ and analytics-api/ ─────────────────────────────
+    "ms-python.python",
+    "ms-python.pylance",
+
+    // ── Web / TypeScript / React ───────────────────────────────────────────
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    // TailwindCSS v4 IntelliSense (class autocomplete + @theme support)
+    "bradlc.vscode-tailwindcss",
+    "formulahendry.auto-rename-tag",
+
+    // ── Docker & Kubernetes ────────────────────────────────────────────────
+    "ms-azuretools.vscode-docker",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+
+    // ── General DX ─────────────────────────────────────────────────────────
+    "EditorConfig.EditorConfig",
+    "streetsidesoftware.code-spell-checker",
+    "eamodio.gitlens"
+  ]
+}

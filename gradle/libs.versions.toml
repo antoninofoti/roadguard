@@ -1,5 +1,5 @@
 [versions]
-agp = "9.1.0"
+agp = "9.1.1"
 kotlin = "2.2.10"
 coreKtx = "1.10.1"
 junit = "4.13.2"
@@ -25,7 +25,7 @@ okhttp = "4.11.0"
 kotlinxCoroutines = "1.7.3"
 coil = "2.6.0"
 opencv = "4.6.0"
-detekt = "1.23.7"
+detekt = "1.23.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
