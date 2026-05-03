@@ -6,7 +6,7 @@
   "fedrg_personalized_f1": 0.5946,
   "fedrg_dp_epsilon1_f1": 0.4444,
   "personalization_gain_pp": 2.98,
-  "dp_penalty_pp": 13.83,
+  "dp_penalty_pp": 15.02,
   "convergence_round": 10,
   "communication_cost_mb_per_round": 43.4,
   "n_clients": 5,

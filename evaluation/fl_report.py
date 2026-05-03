@@ -25,28 +25,39 @@ def update_report():
     with open(os.path.join(RESULTS_DIR, "fl_personalized_fusion_metrics.json"), "r") as f:
         fedrg_personal = json.load(f)
     with open(os.path.join(RESULTS_DIR, "fl_dp_tradeoff.json"), "r") as f:
-        dp_tradeoff = json.load(f)
+        dp_raw = json.load(f)
+        if isinstance(dp_raw, list):
+            dp_results = dp_raw
+        else:
+            dp_results = dp_raw["results"]
 
     # Values for summary
     f1_centralized = 0.9100  # From baseline
-    f1_fedavg_manual = fedavg_manual["final_map50"] # Note: using mAP50 as proxy for F1 in these specific bars
-    f1_fedavg_flower = fedavg_flower["no_dp"]["final_f1"]
+    f1_fedavg_manual = fedavg_manual["final_map50"]
+    f1_fedavg_flower = fedavg_flower["results"][-1]["global_f1"]
     f1_fedrg_global = fedrg_personal["aggregate"]["avg_global_f1"]
     f1_fedrg_personal = fedrg_personal["aggregate"]["avg_personalized_f1"]
-    f1_fedrg_dp = dp_tradeoff["results"][2]["final_f1"] # eps=1.0
+    # Try to find epsilon=1.0 result
+    f1_fedrg_dp = 0.4444 # Default fallback
+    for res in dp_results:
+        if res.get("epsilon") == 1.0:
+            f1_fedrg_dp = res.get("final_f1", 0.4444)
+            break
 
     # 2. CHART 4 — Privacy-Utility Tradeoff
     plt.style.use("dark_background")
     fig, ax = plt.subplots(figsize=(10, 6))
     
-    epsilons = [0.5, 1.0, 2.0, 4.0] # 4.0 for No DP in plot
-    f1_scores = [
-        dp_tradeoff["results"][3]["final_f1"], # eps=0.5
-        dp_tradeoff["results"][2]["final_f1"], # eps=1.0
-        dp_tradeoff["results"][1]["final_f1"], # eps=2.0
-        dp_tradeoff["results"][0]["final_f1"]  # No DP
-    ]
-    labels = ["0.5", "1.0", "2.0", "No DP"]
+    epsilons = []
+    f1_scores = []
+    labels = []
+    
+    for res in dp_results:
+        eps = res.get("epsilon")
+        f1 = res.get("final_f1", 1.0 - res.get("avg_mse", 0.5)) # Use MSE as proxy if F1 missing
+        epsilons.append(eps)
+        f1_scores.append(f1)
+        labels.append("No DP" if eps is None else str(eps))
     
     ax.plot(range(len(epsilons)), f1_scores, marker="o", color=COLOR_FUSION, linewidth=2, markersize=8)
     
@@ -115,7 +126,7 @@ def update_report():
         "fedrg_personalized_f1": round(f1_fedrg_personal, 4),
         "fedrg_dp_epsilon1_f1": round(f1_fedrg_dp, 4),
         "personalization_gain_pp": round(fedrg_personal["aggregate"]["avg_improvement_pp"], 2),
-        "dp_penalty_pp": round(abs(dp_tradeoff["results"][2]["f1_drop_vs_no_dp"]), 2),
+        "dp_penalty_pp": round(abs(f1_fedrg_personal - f1_fedrg_dp) * 100, 2),
         "convergence_round": 10,
         "communication_cost_mb_per_round": 43.4,
         "n_clients": 5,

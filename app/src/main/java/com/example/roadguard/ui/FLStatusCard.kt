@@ -1,7 +1,9 @@
 package com.example.roadguard.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Public
@@ -9,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -63,9 +66,19 @@ fun FLStatusCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.background(
+            Brush.linearGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),
+                    MaterialTheme.colorScheme.surface
+                )
+            )
+        )) {
+            Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Public, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(8.dp))
@@ -123,14 +136,16 @@ fun FLStatusCard(
                             }
                         }
                     },
+                    shape = RoundedCornerShape(12.dp),
                     enabled = !isParticipating && currentRound != null
                 ) {
                     if (isParticipating) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
                     } else {
-                        Text(stringResource(R.string.participate_button))
+                        Text(stringResource(R.string.participate_button), fontWeight = FontWeight.Bold)
                     }
                 }
+            }
             }
         }
     }

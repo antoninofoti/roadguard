@@ -1,33 +1,32 @@
-{
-  "results": [
-    {
-      "privacy_level": "No DP",
-      "epsilon": null,
-      "final_f1": 0.5827814569536424,
-      "f1_drop_vs_no_dp": 0.0,
-      "noise_sigma": 0.0
-    },
-    {
-      "privacy_level": "Loose",
-      "epsilon": 2.0,
-      "final_f1": 0.47368421052631576,
-      "f1_drop_vs_no_dp": -10.90972464273266,
-      "noise_sigma": 2.4224026313026945
-    },
-    {
-      "privacy_level": "Balanced",
-      "epsilon": 1.0,
-      "final_f1": 0.4444444444444444,
-      "f1_drop_vs_no_dp": -13.833701250919795,
-      "noise_sigma": 4.844805262605389
-    },
-    {
-      "privacy_level": "Strict",
-      "epsilon": 0.5,
-      "final_f1": 0.45161290322580644,
-      "f1_drop_vs_no_dp": -13.116855372783592,
-      "noise_sigma": 9.689610525210778
-    }
-  ],
-  "thesis_narrative": "Privacy budget epsilon quantifies the tradeoff: epsilon=1.0 degrades F1 by only 13.83 pp while providing strong privacy guarantees."
-}
+[
+  {
+    "epsilon": 0.1,
+    "sigma": 10.0,
+    "avg_mse": 0.257562
+  },
+  {
+    "epsilon": 0.5,
+    "sigma": 2.0,
+    "avg_mse": 0.209391
+  },
+  {
+    "epsilon": 1.0,
+    "sigma": 1.0,
+    "avg_mse": 0.184796
+  },
+  {
+    "epsilon": 2.0,
+    "sigma": 0.5,
+    "avg_mse": 0.129172
+  },
+  {
+    "epsilon": 5.0,
+    "sigma": 0.2,
+    "avg_mse": 0.037047
+  },
+  {
+    "epsilon": 10.0,
+    "sigma": 0.1,
+    "avg_mse": 0.01024
+  }
+]

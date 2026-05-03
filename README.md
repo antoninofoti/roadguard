@@ -22,6 +22,14 @@ Accel+Gyro → Kalman 3D → ┘                                          → Pr
 
 **Key formula**: `Score = 0.55 × CV + 0.30 × Sensor + 0.15 × Temporal`
 
+## Federated Learning (FedRoadGuard)
+
+The system includes a decentralized optimization layer that allows individual vehicles to personalize their fusion weights without sharing raw data:
+
+- **Personalization**: Local Grid Search on user feedback improves detection F1-score by **+2.98 pp** on average.
+- **Privacy**: Implements **Local Differential Privacy (LDP)** with Gaussian noise (ε=1.0) on gradient/metric uploads.
+- **Scalability**: Federated Averaging (FedAvg) simulated via the **Flower** framework, achieving 86% of centralized performance in a non-IID geographic distribution.
+
 ## Tech Stack
 
 | Layer | Technology |

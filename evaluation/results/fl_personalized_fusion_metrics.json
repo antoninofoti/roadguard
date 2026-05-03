@@ -308,6 +308,38 @@
       "total_gb": 0.4238
     }
   },
+  "dp_tradeoff": [
+    {
+      "epsilon": 0.1,
+      "sigma": 10.0,
+      "avg_mse": 0.257562
+    },
+    {
+      "epsilon": 0.5,
+      "sigma": 2.0,
+      "avg_mse": 0.209391
+    },
+    {
+      "epsilon": 1.0,
+      "sigma": 1.0,
+      "avg_mse": 0.184796
+    },
+    {
+      "epsilon": 2.0,
+      "sigma": 0.5,
+      "avg_mse": 0.129172
+    },
+    {
+      "epsilon": 5.0,
+      "sigma": 0.2,
+      "avg_mse": 0.037047
+    },
+    {
+      "epsilon": 10.0,
+      "sigma": 0.1,
+      "avg_mse": 0.01024
+    }
+  ],
   "config": {
     "k_clients": 5,
     "alpha_sweep": [
@@ -319,6 +351,6 @@
     ],
     "decision_threshold": 0.5,
     "model_size_mb": 6.2,
-    "timestamp": "2026-05-02T08:35:09.227807"
+    "timestamp": "2026-05-03T23:08:38.178173"
   }
 }

@@ -11,6 +11,9 @@
 /.idea/assetWizardSettings.xml
 .DS_Store
 
+# Kaggle credentials
+kaggle.json
+
 ## Android and build artifacts
 /build
 /captures
@@ -60,3 +63,8 @@ evaluation/results/fl_partitions/
 
 ## Environment overrides
 web-portal/.env.production
+
+## Ignore temporary documentation but keep READMEs
+*.md
+!README.md
+!**/README.md

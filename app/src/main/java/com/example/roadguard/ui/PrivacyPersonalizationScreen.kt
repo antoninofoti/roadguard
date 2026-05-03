@@ -75,11 +75,11 @@ fun PrivacyPersonalizationScreen(viewModel: PersonalizationViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            FusionWeightCard(stringResource(R.string.camera_reliability), weights.first, Color(0xFF6366F1))
+            FusionWeightCard(stringResource(R.string.camera_reliability), weights.first, Color(0xFF6366F1), Color(0xFF4F46E5))
             Spacer(modifier = Modifier.height(12.dp))
-            FusionWeightCard(stringResource(R.string.imu_sensitivity), weights.second, Color(0xFF22D3EE))
+            FusionWeightCard(stringResource(R.string.imu_sensitivity), weights.second, Color(0xFF22D3EE), Color(0xFF0891B2))
             Spacer(modifier = Modifier.height(12.dp))
-            FusionWeightCard(stringResource(R.string.temporal_synergy), weights.third, Color(0xFFA855F7))
+            FusionWeightCard(stringResource(R.string.temporal_synergy), weights.third, Color(0xFFA855F7), Color(0xFF9333EA))
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -147,31 +147,50 @@ fun PrivacyHeaderCard() {
 }
 
 @Composable
-fun FusionWeightCard(label: String, value: Float, color: Color) {
+fun FusionWeightCard(label: String, value: Float, startColor: Color, endColor: Color) {
     val animatedProgress by animateFloatAsState(targetValue = value, label = "weight_progress")
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                Text("${(value * 100).toInt()}%", style = MaterialTheme.typography.labelLarge, color = color, fontWeight = FontWeight.Bold)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            LinearProgressIndicator(
-                progress = { animatedProgress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp),
-                color = color,
-                trackColor = color.copy(alpha = 0.1f)
+        Box(modifier = Modifier.background(
+            Brush.verticalGradient(
+                colors = listOf(startColor.copy(alpha = 0.05f), Color.Transparent)
             )
+        )) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        label, 
+                        style = MaterialTheme.typography.titleSmall, 
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "${(value * 100).toInt()}%", 
+                        style = MaterialTheme.typography.titleMedium, 
+                        color = endColor, 
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { animatedProgress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp),
+                    color = endColor,
+                    trackColor = endColor.copy(alpha = 0.1f),
+                    strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                )
+            }
         }
     }
 }
