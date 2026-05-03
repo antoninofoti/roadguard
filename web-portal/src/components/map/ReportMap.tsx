@@ -10,6 +10,7 @@ import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { ReportMarker } from './ReportMarker';
+import { HeatmapLayer } from './HeatmapLayer';
 import type { Report } from '../../types/report';
 
 // Default center: Rome, Italy
@@ -26,6 +27,7 @@ interface ReportMapProps {
   reports: Report[];
   selectedId: string | null;
   onSelect: (report: Report) => void;
+  showHeatmap?: boolean;
 }
 
 /** Helper component to fit map bounds to reports */
@@ -73,11 +75,21 @@ function FlyToSelected({
   return null;
 }
 
-export function ReportMap({ reports, selectedId, onSelect }: ReportMapProps) {
+export function ReportMap({ reports, selectedId, onSelect, showHeatmap = false }: ReportMapProps) {
   const selectedReport = useMemo(
     () => reports.find((r) => r.id === selectedId),
     [reports, selectedId]
   );
+
+  const heatmapPoints = useMemo(() => {
+    return reports
+      .filter(r => r.location !== null)
+      .map(r => [
+        r.location!.latitude,
+        r.location!.longitude,
+        (r.fusedScore || 0.5) * 1.5 // Scale intensity by fused score
+      ] as [number, number, number]);
+  }, [reports]);
 
   // Custom cluster icon creator
   const createClusterCustomIcon = (cluster: { getChildCount: () => number }) => {
@@ -126,6 +138,8 @@ export function ReportMap({ reports, selectedId, onSelect }: ReportMapProps) {
       <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
       <FitBounds reports={reports} />
       <FlyToSelected report={selectedReport} />
+
+      {showHeatmap && <HeatmapLayer points={heatmapPoints} />}
 
       <MarkerClusterGroup
         iconCreateFunction={createClusterCustomIcon}

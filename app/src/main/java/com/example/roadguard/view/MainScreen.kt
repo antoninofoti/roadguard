@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,6 +27,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import com.example.roadguard.tflite.PotholeDetectionHelper
 import com.google.firebase.firestore.GeoPoint
 import androidx.compose.runtime.collectAsState
@@ -35,6 +40,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import java.util.Locale
 import androidx.navigation.NavController
+import com.example.roadguard.data.local.RoadGuardDatabase
+import com.example.roadguard.ml.FederatedFusionManager
+import com.example.roadguard.network.FirebaseFLCoordinator
+import com.example.roadguard.ui.FLStatusCard
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
@@ -79,78 +91,89 @@ fun MainScreen(viewModel: MainViewModel, navController: NavController) {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(modifier = Modifier.wrapContentSize()) {
-            viewModel.imageBitmap.value?.let { bitmap ->
-                Image(
-                    bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Selected Image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp)
-                )
-                Canvas(modifier = Modifier.matchParentSize()) {
-                    viewModel.detections.value.forEach { detection ->
-                        drawRect(
-                            color = Color.Red,
-                            topLeft = androidx.compose.ui.geometry.Offset(detection.boundingBox.left, detection.boundingBox.top),
-                            size = androidx.compose.ui.geometry.Size(detection.boundingBox.width(), detection.boundingBox.height()),
-                            style = Stroke(width = 2.dp.toPx())
-                        )
+    Box(modifier = Modifier.fillMaxSize()) {
+        IconButton(
+            onClick = { navController.navigate("settings") },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Settings, contentDescription = "Settings")
+        }
+
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Box(modifier = Modifier.wrapContentSize()) {
+                viewModel.imageBitmap.value?.let { bitmap ->
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                    )
+                    Canvas(modifier = Modifier.matchParentSize()) {
+                        viewModel.detections.value.forEach { detection ->
+                            drawRect(
+                                color = Color.Red,
+                                topLeft = androidx.compose.ui.geometry.Offset(detection.boundingBox.left, detection.boundingBox.top),
+                                size = androidx.compose.ui.geometry.Size(detection.boundingBox.width(), detection.boundingBox.height()),
+                                style = Stroke(width = 2.dp.toPx())
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Display real-time severity
+            SeverityIndicator(severity = severity)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Federated Learning Status Card (Prompt 9B)
+            val app = context.applicationContext as com.example.roadguard.RoadGuardApp
+            val fusionManager = app.fusionManager
+            val coordinator = app.flCoordinator
+            
+            val sharedPrefs = remember { context.getSharedPreferences("roadguard_fusion_prefs", 0) }
+            val isPersonalizationEnabled = sharedPrefs.getBoolean("personalization_enabled", false)
+
+            if (isPersonalizationEnabled) {
+                val db = app.database
+                FLStatusCard(coordinator, fusionManager, db)
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // Button for live detection
+            Button(onClick = {
+                context.startActivity(Intent(context, com.example.roadguard.ui.LivePotholeDetectionActivity::class.java))
+            }) {
+                Text("Live Pothole Detection")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (viewModel.detections.value.isNotEmpty()) {
+                Button(
+                    onClick = {
+                        viewModel.imageBitmap.value?.let {
+                            viewModel.addReport(it, context)
+                        }
+                    },
+                    enabled = !isSaving
+                ) {
+                    if (isSaving) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                    } else {
+                        Text("Save Report")
                     }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Display real-time severity
-        SeverityIndicator(severity = severity)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Button for live detection
-        Button(onClick = {
-            context.startActivity(Intent(context, com.example.roadguard.ui.LivePotholeDetectionActivity::class.java))
-        }) {
-            Text("Live Pothole Detection")
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (viewModel.detections.value.isNotEmpty()) {
-            Button(
-                onClick = {
-                    viewModel.imageBitmap.value?.let {
-                        viewModel.addReport(it, context)
-                    }
-                },
-                enabled = !isSaving
-            ) {
-                if (isSaving) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                } else {
-                    Text("Save Report")
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Remove the old image picker button and the unused intent-based detection button
-        // (Commented out for reference)
-        // Button(onClick = { launcher.launch("image/*") }) {
-        //     Text("Select Image")
-        // }
-        // Spacer(modifier = Modifier.height(16.dp))
-        // Button(onClick = {
-        //     context.startActivity(Intent(context, com.example.roadguard.PotholeDetectionActivity::class.java))
-        // }) {
-        //     Text("Open Pothole Detection")
-        // }
     }
 }
 

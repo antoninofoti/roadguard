@@ -1,0 +1,6 @@
+branch,precision,recall,f1,accuracy,notes
+IMU-only,0.6667,1.0,0.8,0.8492,
+Vision-only,0.6825,0.7167,0.6992,0.815,
+Late Fusion,0.7424,0.8167,0.7778,0.86,
+FL FedAvg (Vision),,,0.5783,,10 rounds K=5 C=2
+FL Personalized Fusion,,,0.5946,,3/5 clients improved | +2.98pp avg

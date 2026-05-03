@@ -64,6 +64,14 @@ class FusionEngine(
     var fusionMode: FusionMode = FusionMode.FIXED,
     var detectionMode: DetectionMode? = null
 ) {
+    /**
+     * Personalized constructor for FedRG (Thesis Chapter 4).
+     */
+    constructor(alpha: Float, beta: Float, gamma: Float) : this(
+        config = FusionConfig(cvWeight = alpha, sensorWeight = beta, temporalWeight = gamma),
+        fusionMode = FusionMode.FIXED
+    )
+
     companion object {
         private const val TAG = "FusionEngine"
     }

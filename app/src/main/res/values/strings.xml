@@ -133,4 +133,50 @@
     <string name="about_version">Version %s</string>
     <string name="about_thesis">MSc Thesis — Engineering in Computer Science</string>
     <string name="about_university">Sapienza University of Rome</string>
+
+    <!-- UI/UX Additions (Appendix B) -->
+    <string name="action_back">← Back</string>
+    <string name="action_rec">● REC</string>
+    <string name="action_stop">■ STOP</string>
+    <string name="action_send_report">✓ Send Report</string>
+    <string name="action_discard">✗ Discard</string>
+    <string name="detection_pothole_detected_score">Road damage detected (%d%%)</string>
+    <string name="detection_prompt_message">Source: %s\nSend this location to municipal operators?</string>
+    <string name="detection_feedback_message">Report submitted! Was it a real pothole? (tap Reports to review)</string>
+    <string name="detection_scanning">SCANNING</string>
+    <string name="detection_detected">DETECTED</string>
+    <string name="detection_submitted">SUBMITTED</string>
+
+    <string name="operator_reports_count">%d report(s)</string>
+    <string name="operator_no_reports">No %s reports</string>
+    <string name="label_confidence_scores">CV: %1$.0f%%  Sensor: %2$.0f%%  Fused: %3$.0f%%</string>
+    <string name="label_coordinates">📍 %1$.4f, %2$.4f</string>
+    <string name="privacy_intelligence">Privacy Intelligence</string>
+    <string name="federated_personalization">Federated Personalization</string>
+    <string name="privacy_description">Your driving patterns and raw sensor data never leave this device. We only aggregate anonymized neural updates to improve the global model without compromising your location privacy.</string>
+    <string name="neural_fusion_weights">Neural Fusion Weights</string>
+    <string name="neural_weights_description">These weights balance vision vs inertia sensors based on your driving context.</string>
+    <string name="camera_reliability">Camera Reliability (Alpha)</string>
+    <string name="imu_sensitivity">IMU/Inertia Sensitivity (Beta)</string>
+    <string name="temporal_synergy">Temporal Synergy (Gamma)</string>
+    <string name="local_accuracy">Local Accuracy</string>
+    <string name="privacy_layer">Privacy Layer</string>
+    <string name="ldp_active">LDP Active</string>
+    <string name="calibrating">Calibrating…</string>
+    <string name="sync_neural_state">Sync Neural State</string>
+    <string name="technical_whitepaper">Technical Whitepaper</string>
+    <string name="fl_network_title">RoadGuard FL Network</string>
+    <string name="local_f1_label">Your Local F1</string>
+    <string name="feedback_samples_label">Feedback Samples</string>
+    <string name="current_round_label">Current Round</string>
+    <string name="round_number_format">Round #%1$d</string>
+    <string name="participants_label">Participants</string>
+    <string name="participants_format">%1$d devices</string>
+    <string name="personalization_active">Personalization Active</string>
+    <string name="participate_button">PARTICIPATE IN ROUND</string>
+    <string name="details_button">DETAILS</string>
+    <string name="fl_details_title">FedRoadGuard Details</string>
+    <string name="fl_details_text">Federated Learning allows improving fusion weights without sending raw data to the cloud. Only utility metrics (F1-score) are aggregated.</string>
+    <string name="participation_success">Participation registered!</string>
+    <string name="participation_failed">Participation failed (no open round?)</string>
 </resources>

@@ -1,0 +1,15 @@
+{
+  "baseline_centralized_f1": 0.91,
+  "fedavg_manual_f1": 0.5783,
+  "fedavg_flower_f1": 0.5529,
+  "fedrg_global_fusion_f1": 0.5648,
+  "fedrg_personalized_f1": 0.5946,
+  "fedrg_dp_epsilon1_f1": 0.4444,
+  "personalization_gain_pp": 2.98,
+  "dp_penalty_pp": 13.83,
+  "convergence_round": 10,
+  "communication_cost_mb_per_round": 43.4,
+  "n_clients": 5,
+  "n_rounds": 10,
+  "dirichlet_alpha": 0.5
+}

@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     jacoco
     alias(libs.plugins.detekt)
+    alias(libs.plugins.ksp)
 }
 
 val localProperties = Properties()
@@ -150,6 +151,11 @@ dependencies {
     implementation("com.google.guava:guava:32.1.3-android")
 
     implementation("androidx.appcompat:appcompat:1.6.1")
+    
+    // Room (Phase G.1)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     // Testing
     testImplementation(libs.junit)

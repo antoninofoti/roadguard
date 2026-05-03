@@ -52,6 +52,8 @@ import com.google.android.gms.location.Priority
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.firebase.firestore.GeoPoint
+import com.example.roadguard.data.local.RoadGuardDatabase
+import com.example.roadguard.ml.FederatedFusionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,7 +88,8 @@ class LivePotholeDetectionFragment : Fragment() {
     private var lastAnalysisTime = 0L
 
     // Fusion Engine
-    private val fusionEngine = FusionEngine(fusionMode = FusionMode.ADAPTIVE)
+    private lateinit var fusionEngine: FusionEngine
+    private lateinit var federatedFusionManager: FederatedFusionManager
     private val reportRepository = ReportRepository()
     private var lastReportTime = 0L
     private var lastPromptTime = 0L
@@ -102,7 +105,7 @@ class LivePotholeDetectionFragment : Fragment() {
 
     // UI
     private lateinit var progressBar: ProgressBar
-    private lateinit var fusionStatusText: TextView
+    // fusionStatusText removed — detection state is now rendered by PotholeOverlayView HUD strip
     private var permissionsGranted = false
     private var emptyDetectionFrames = 0
     private val emptyDetectionThreshold = 10
@@ -176,7 +179,7 @@ class LivePotholeDetectionFragment : Fragment() {
 
         // Back button
         val btnBack = Button(requireContext()).apply {
-            text = "← Back"
+            text = getString(R.string.action_back)
             setBackgroundColor(ContextCompat.getColor(context, android.R.color.transparent))
             setTextColor(ContextCompat.getColor(context, R.color.purple_700))
             textSize = 18f
@@ -194,43 +197,29 @@ class LivePotholeDetectionFragment : Fragment() {
         }
         (view as FrameLayout).addView(btnBack)
 
-        // Fusion status indicator (bottom of screen)
-        fusionStatusText = TextView(requireContext()).apply {
-            text = "Fusion: Initializing..."
-            setTextColor(ContextCompat.getColor(context, android.R.color.white))
-            textSize = 14f
-            setBackgroundColor(0x80000000.toInt()) // Semi-transparent black
-            setPadding(24, 12, 24, 12)
-            val params = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.gravity = Gravity.BOTTOM
-            layoutParams = params
-            elevation = 15f
-        }
-        (view as FrameLayout).addView(fusionStatusText)
+        // Status is now rendered entirely in PotholeOverlayView's HUD strip.
+        // fusionStatusText is no longer needed as a separate TextView.
 
         // REC button for logging
         val btnRec = Button(requireContext()).apply {
-            text = "● REC"
+            text = getString(R.string.action_rec)
             setTextColor(ContextCompat.getColor(context, android.R.color.white))
             setBackgroundResource(R.drawable.button_rec_background) // We'll need to create this or use a color
             setOnClickListener {
                 val isLogging = sensorService?.isLoggingEnabled ?: false
                 sensorService?.toggleLogging(!isLogging)
                 if (sensorService?.isLoggingEnabled == true) {
-                    text = "■ STOP"
+                    text = getString(R.string.action_stop)
                     backgroundTintList = android.content.res.ColorStateList.valueOf(
                         ContextCompat.getColor(context, android.R.color.holo_red_dark)
                     )
-                    Toast.makeText(context, "Logging started", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.logging_started, ""), Toast.LENGTH_SHORT).show()
                 } else {
-                    text = "● REC"
+                    text = getString(R.string.action_rec)
                     backgroundTintList = android.content.res.ColorStateList.valueOf(
                         ContextCompat.getColor(context, R.color.purple_500)
                     )
-                    Toast.makeText(context, "Logging saved to storage", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.logging_stopped, 0), Toast.LENGTH_SHORT).show()
                 }
             }
             val params = FrameLayout.LayoutParams(
@@ -261,6 +250,22 @@ class LivePotholeDetectionFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d(TAG, "onViewCreated")
+
+        val db = RoadGuardDatabase.getInstance(requireContext())
+        federatedFusionManager = FederatedFusionManager(
+            requireContext(),
+            db.detectionDao(),
+            CoroutineScope(Dispatchers.Main)
+        )
+
+        // Task 3: Use personalized weights in FusionEngine
+        val (alpha, beta, gamma) = if (federatedFusionManager.isPersonalizationEnabled()) {
+            federatedFusionManager.getPersonalizedWeights()
+        } else {
+            Triple(0.55f, 0.30f, 0.15f)
+        }
+        fusionEngine = FusionEngine(alpha, beta, gamma)
+        fusionEngine.fusionMode = FusionMode.ADAPTIVE // Allow context-awareness on top of base weights
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
@@ -308,28 +313,45 @@ class LivePotholeDetectionFragment : Fragment() {
      * Process a fusion result and take appropriate action.
      */
     private fun processFusionResult(result: FusionResult, bitmap: Bitmap?) {
-        // Update status UI
-        val statusEmoji = when (result.action) {
-            FusionAction.AUTO_REPORT -> "🟢 AUTO"
-            FusionAction.PROMPT_USER -> "🟡 PROMPT"
-            FusionAction.DISCARD -> "⚪ —"
+        // Update HUD overlay with semantic state
+        val hudState = when (result.action) {
+            FusionAction.AUTO_REPORT -> PotholeOverlayView.DetectionState.SUBMITTED
+            FusionAction.PROMPT_USER -> PotholeOverlayView.DetectionState.DETECTED
+            FusionAction.DISCARD     -> PotholeOverlayView.DetectionState.SCANNING
         }
-        fusionStatusText.text = "Fusion: %.2f %s | CV:%.2f Sensor:%.2f | %s"
-            .format(result.fusedScore, statusEmoji, result.cvConfidence,
-                result.sensorConfidence, result.detectionSource)
+        overlayView.updateHud(
+            cv     = result.cvConfidence,
+            imu    = result.sensorConfidence,
+            fused  = result.fusedScore,
+            state  = hudState
+        )
+
+        Log.d(TAG, "FusionResult: action=${result.action} fused=%.2f".format(result.fusedScore))
+
+        // Record detection event for federated personalisation
+        if (result.cvConfidence > 0.1f || result.sensorConfidence > 0.1f) {
+            federatedFusionManager.recordDetection(
+                cvConf    = result.cvConfidence,
+                imuConf   = result.sensorConfidence,
+                fusedScore = result.fusedScore,
+                predicted  = if (result.action != FusionAction.DISCARD) 1 else 0
+            )
+        }
 
         when (result.action) {
             FusionAction.AUTO_REPORT -> {
                 Log.d(TAG, "AUTO_REPORT: fused=${result.fusedScore}")
                 tryCreateFusionReport(bitmap, result)
+                // Return to SCANNING state after cooldown
+                overlayView.postDelayed({
+                    overlayView.detectionState = PotholeOverlayView.DetectionState.SCANNING
+                }, REPORT_COOLDOWN_MS)
             }
             FusionAction.PROMPT_USER -> {
                 Log.d(TAG, "PROMPT_USER: fused=${result.fusedScore}")
                 promptUserForReport(result, bitmap)
             }
-            FusionAction.DISCARD -> {
-                // Low confidence — do nothing
-            }
+            FusionAction.DISCARD -> { /* Low confidence — no action */ }
         }
     }
 
@@ -345,22 +367,21 @@ class LivePotholeDetectionFragment : Fragment() {
         lastPromptTime = now
 
         val scorePct = (result.fusedScore * 100).toInt()
+        // Minimal dialog per Appendix B.4: exactly 2 actions, no text fields
         activePromptDialog = AlertDialog.Builder(requireContext())
-            .setTitle("Confirm road damage report")
-            .setMessage(
-                "Fusion score: $scorePct%\n" +
-                    "Source: ${result.detectionSource}\n\n" +
-                    "Send this report to operators?"
-            )
-            .setPositiveButton("Send report") { _, _ ->
+            .setTitle(getString(R.string.detection_pothole_detected_score, scorePct))
+            .setMessage(getString(R.string.detection_prompt_message, result.detectionSource))
+            .setPositiveButton(R.string.action_send_report) { _, _ ->
                 tryCreateFusionReport(bitmap, result)
+                overlayView.postDelayed({
+                    overlayView.detectionState = PotholeOverlayView.DetectionState.SCANNING
+                }, REPORT_COOLDOWN_MS)
             }
-            .setNegativeButton("Dismiss") { _, _ ->
-                Log.d(TAG, "PROMPT_USER dismissed by user")
+            .setNegativeButton(R.string.action_discard) { _, _ ->
+                Log.d(TAG, "PROMPT_USER dismissed")
+                overlayView.detectionState = PotholeOverlayView.DetectionState.SCANNING
             }
-            .setOnDismissListener {
-                activePromptDialog = null
-            }
+            .setOnDismissListener { activePromptDialog = null }
             .show()
     }
 
@@ -416,10 +437,13 @@ class LivePotholeDetectionFragment : Fragment() {
                             "Auto-report" else "Report"
                         Toast.makeText(
                             requireContext(),
-                            "$actionLabel sent (${result.detectionSource}, score=%.0f%%)"
+                            "$actionLabel sent (Score: %.0f%%)"
                                 .format(result.fusedScore * 100),
                             Toast.LENGTH_SHORT
                         ).show()
+
+                        // Task 1: Show Feedback SnackBar
+                        showFeedbackSnackbar()
                     }
                     reportResult.onFailure { e ->
                         Toast.makeText(
@@ -431,6 +455,23 @@ class LivePotholeDetectionFragment : Fragment() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error creating fusion report", e)
+            }
+        }
+    }
+
+    /**
+     * Show a brief feedback Toast after report submission.
+     * Replaces the Snackbar approach to avoid Material Components dependency.
+     */
+    private fun showFeedbackSnackbar() {
+        if (!isAdded) return
+        Toast.makeText(requireContext(), R.string.detection_feedback_message, Toast.LENGTH_LONG).show()
+        // Update latest detection record with positive ground truth for federated learning
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = RoadGuardDatabase.getInstance(requireContext())
+            val lastRecord = db.detectionDao().getLastN(1).firstOrNull()
+            if (lastRecord != null) {
+                federatedFusionManager.submitFeedback(lastRecord.id, true)
             }
         }
     }

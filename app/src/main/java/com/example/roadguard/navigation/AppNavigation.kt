@@ -6,6 +6,8 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -35,6 +37,9 @@ import com.example.roadguard.view.MainViewModel
 import com.example.roadguard.view.ReportsMapScreen
 import com.example.roadguard.view.ReportsScreen
 import com.example.roadguard.view.ReportsViewModel
+import com.example.roadguard.RoadGuardApp
+import com.example.roadguard.ml.PersonalizationViewModel
+import com.example.roadguard.ui.PrivacyPersonalizationScreen
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
@@ -42,6 +47,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Map : Screen("map", "Map", Icons.Default.LocationOn)
     object OperatorDashboard : Screen("operator", "Dashboard", Icons.Default.Build)
     object Analytics : Screen("analytics", "Analytics", Icons.Default.Star)
+    object Settings : Screen("settings", "Settings", Icons.Default.Settings)
+    object Privacy : Screen("privacy", "Privacy", Icons.Default.Shield)
 }
 
 @Composable
@@ -52,6 +59,12 @@ fun AppNavigation() {
     val homeViewModel: HomeViewModel = viewModel()
     val operatorViewModel: OperatorViewModel = viewModel()
     val analyticsViewModel: AnalyticsViewModel = viewModel()
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val app = context.applicationContext as RoadGuardApp
+    val personalizationViewModel: PersonalizationViewModel = viewModel(
+        factory = PersonalizationViewModel.Factory(app.fusionManager, app.database)
+    )
 
     // Observe user role for conditional navigation
     val user by homeViewModel.user.collectAsState()
@@ -62,6 +75,7 @@ fun AppNavigation() {
         add(Screen.Home)
         add(Screen.Reports)
         add(Screen.Map)
+        add(Screen.Privacy)
         if (isOperator) {
             add(Screen.OperatorDashboard)
             add(Screen.Analytics)
@@ -106,7 +120,12 @@ fun AppNavigation() {
             composable(Screen.Analytics.route) {
                 AnalyticsScreen(analyticsViewModel = analyticsViewModel)
             }
+            composable(Screen.Settings.route) {
+                com.example.roadguard.view.SettingsScreen(navController = navController)
+            }
+            composable(Screen.Privacy.route) {
+                PrivacyPersonalizationScreen(viewModel = personalizationViewModel)
+            }
         }
     }
 }
-

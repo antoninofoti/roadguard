@@ -46,3 +46,17 @@ __pycache__/
 
 ## Local environment secrets
 .env.docker
+## Internal Assistant State
+.gemini/
+
+## Node.js
+node_modules/
+.npm/
+dist/
+.vite/
+
+## Federated Learning Partitions (Simulation Artifacts)
+evaluation/results/fl_partitions/
+
+## Environment overrides
+web-portal/.env.production
