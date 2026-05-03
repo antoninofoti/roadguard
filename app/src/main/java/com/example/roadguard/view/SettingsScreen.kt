@@ -28,11 +28,7 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SettingsScreen(navController: NavController) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val db = remember { RoadGuardDatabase.getInstance(context) }
-    val federatedFusionManager = remember { 
-        FederatedFusionManager(context, db.detectionDao(), CoroutineScope(Dispatchers.Main)) 
-    }
 
     val sharedPrefs = remember { context.getSharedPreferences("roadguard_fusion_prefs", 0) }
     var isEnabled by remember { 

@@ -10,6 +10,7 @@ import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
+import com.example.roadguard.R
 import com.example.roadguard.tflite.Detection
 import kotlin.math.min
 

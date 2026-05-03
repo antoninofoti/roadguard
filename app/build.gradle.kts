@@ -99,6 +99,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
 
     // ExifInterface — EXIF stripping for GDPR compliance (Phase F.2)
     implementation("androidx.exifinterface:exifinterface:1.3.7")
@@ -229,4 +230,8 @@ tasks.withType<io.gitlab.arturbosch.detekt.Detekt>().configureEach {
         xml.required.set(false)
         sarif.required.set(false)
     }
+}
+
+ksp {
+    arg("room.generateKotlin", "true")
 }

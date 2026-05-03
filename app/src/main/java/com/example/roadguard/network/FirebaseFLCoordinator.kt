@@ -131,6 +131,7 @@ class FirebaseFLCoordinator(
         return try {
             firestore.collection(COLLECTION_ROUNDS).document(roundId).get().await().data
         } catch (e: Exception) {
+            Log.e(TAG, "Error getting round stats", e)
             null
         }
     }
@@ -145,6 +146,7 @@ class FirebaseFLCoordinator(
             val bytes = MessageDigest.getInstance("SHA-256").digest(input.toByteArray())
             bytes.joinToString("") { "%02x".format(it) }.take(16)
         } catch (e: Exception) {
+            Log.e(TAG, "Error generating device ID", e)
             "unknown_device_${System.currentTimeMillis()}"
         }
     }

@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerContext
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,7 +31,7 @@ import com.example.roadguard.ml.PersonalizationViewModel
 fun PrivacyPersonalizationScreen(viewModel: PersonalizationViewModel) {
     val weights by viewModel.weights.collectAsState()
     val localF1 by viewModel.localF1.collectAsState()
-    val isEnabled by viewModel.isPersonalizationEnabled.collectAsState()
+
 
     val scrollState = rememberScrollState()
 
@@ -183,20 +182,20 @@ fun MetricsRow(localF1: Float) {
         MetricItem(
             label = stringResource(R.string.local_accuracy),
             value = if (localF1 > 0) "%.1f%%".format(localF1 * 100) else stringResource(R.string.calibrating),
-            Icon = Icons.Default.Share,
+            icon = Icons.Default.Share,
             modifier = Modifier.weight(1f)
         )
         MetricItem(
             label = stringResource(R.string.privacy_layer),
             value = stringResource(R.string.ldp_active),
-            Icon = Icons.Default.Lock,
+            icon = Icons.Default.Lock,
             modifier = Modifier.weight(1f)
         )
     }
 }
 
 @Composable
-fun MetricItem(label: String, value: String, Icon: ImageVector, modifier: Modifier) {
+fun MetricItem(label: String, value: String, icon: ImageVector, modifier: Modifier) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -206,7 +205,7 @@ fun MetricItem(label: String, value: String, Icon: ImageVector, modifier: Modifi
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(Icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary)
+            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.secondary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
