@@ -41,6 +41,7 @@ RESULTS_DIR   = os.path.join(os.path.dirname(__file__), "results")
 OUTPUT_FILE   = os.path.join(RESULTS_DIR, "imu_branch_metrics.json")
 
 DATA_PATHS = [
+    "/content/data/thessaloniki/imu_normalized.csv",
     "data/thessaloniki/imu_data.csv",
     "data/thessaloniki/road_quality_data.csv",
     "data/thessaloniki/data.csv",

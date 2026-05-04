@@ -36,12 +36,14 @@ RANDOM_SEED = 42
 PARTITIONS_DIR = os.path.join(os.path.dirname(__file__), "results", "fl_partitions")
 
 IMU_CSV_PATHS = [
+    "/content/data/thessaloniki/imu_normalized.csv",
     "data/thessaloniki/imu_normalized.csv",
     "data/thessaloniki/road_quality_data.csv",
     "data/thessaloniki/data.csv",
 ]
 
 VISION_LABEL_CSV_PATHS = [
+    "/content/data/thessaloniki/frame_labels.csv",
     "data/thessaloniki/frame_labels.csv",
     "data/thessaloniki/labels.csv",
 ]

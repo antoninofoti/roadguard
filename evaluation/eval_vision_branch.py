@@ -40,6 +40,7 @@ MODEL_PATHS      = [
 YOLO_BASE        = "yolov8n.pt"
 FRAMES_DIR       = "data/thessaloniki/frames"
 LABEL_CSV_PATHS  = [
+    "/content/data/thessaloniki/frame_labels.csv",
     "data/thessaloniki/frame_labels.csv",
     "data/thessaloniki/labels.csv",
     "data/thessaloniki/ground_truth.csv",
