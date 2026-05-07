@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-// https://vite.dev/config/
+// Vite configuration with build optimizations
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
@@ -84,7 +84,7 @@ export default defineConfig({
   },
   // Optimize dependencies pre-bundling
   optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom"],
-    exclude: ["leaflet", "react-leaflet-cluster"],
+    include: ["react", "react-dom", "react-router-dom", "leaflet"],
+    exclude: ["react-leaflet", "react-leaflet-cluster", "@react-leaflet/core"],
   },
 });

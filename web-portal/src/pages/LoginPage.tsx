@@ -4,16 +4,16 @@
  * Dark glassmorphism design with animated gradient background.
  */
 
-import { useState, type FormEvent } from 'react';
-import { Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Shield, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
-import { useAuthContext } from '../context/authContext';
+import { useState, type FormEvent } from "react";
+import { Navigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Shield, Mail, Lock, AlertCircle, ArrowRight } from "lucide-react";
+import { useAuthContext } from "../context/authContext";
 
 export function LoginPage() {
   const { user, isOperator, isLoading, error, signIn } = useAuthContext();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already authenticated
@@ -29,7 +29,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--color-surface-900)] p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-surface-900 p-4 relative overflow-hidden">
       {/* Animated background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[40%] -left-[20%] w-[60%] h-[60%] rounded-full bg-cyan-500/5 blur-3xl animate-pulse" />
@@ -44,7 +44,7 @@ export function LoginPage() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20">
+          <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-cyan-400 to-emerald-400 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-cyan-500/20">
             <Shield className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-white">RoadGuard</h1>
@@ -54,9 +54,44 @@ export function LoginPage() {
         {/* Login Card */}
         <div className="glass-card p-8">
           <h2 className="text-lg font-semibold text-white mb-1">Sign In</h2>
-          <p className="text-sm text-slate-400 mb-6">
-            Operator and administrator access only
+          <p className="text-sm text-slate-400 mb-4">
+            This portal is restricted to operator and administrator access.
+            Provide your email and password to authenticate. The frontend
+            verifies credentials against the backend (Firebase Auth emulator)
+            and receives a session token which grants access to protected
+            features such as the dashboard, reports, and administrative actions.
           </p>
+
+          <div className="mb-6 bg-surface-800 p-3 rounded-md border border-glass-border text-sm text-slate-300">
+            <div className="font-semibold text-white mb-2">
+              Test credentials
+            </div>
+            <div className="space-y-1">
+              <div>
+                Admin (test):{" "}
+                <span className="font-medium">admin@example.com</span> /{" "}
+                <span className="font-medium">Password123!</span>
+              </div>
+              <div>
+                Operator (test):{" "}
+                <span className="font-medium">
+                  operator.release@roadguard.local
+                </span>{" "}
+                / <span className="font-medium">RoadGuard!2026</span>
+              </div>
+              <div>
+                User (test):{" "}
+                <span className="font-medium">user@example.com</span> /{" "}
+                <span className="font-medium">Password123!</span>
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 mt-2">
+              If the Auth emulator is not running, start it and use the scripts
+              in
+              <span className="ml-1 font-medium">web-portal/scripts</span> to
+              provision the test accounts.
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
@@ -77,7 +112,7 @@ export function LoginPage() {
                   placeholder="operator@roadguard.it"
                   required
                   autoComplete="email"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--color-surface-900)] border border-[var(--color-glass-border)] text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--color-accent-primary)]/50 focus:ring-1 focus:ring-[var(--color-accent-primary)]/20 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-surface-900 border border-glass-border text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-colors"
                 />
               </div>
             </div>
@@ -100,7 +135,7 @@ export function LoginPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="current-password"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[var(--color-surface-900)] border border-[var(--color-glass-border)] text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-[var(--color-accent-primary)]/50 focus:ring-1 focus:ring-[var(--color-accent-primary)]/20 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-surface-900 border border-glass-border text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-accent-primary/50 focus:ring-1 focus:ring-accent-primary/20 transition-colors"
                 />
               </div>
             </div>
@@ -121,7 +156,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting || isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-gradient-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-400 hover:to-emerald-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold bg-linear-to-r from-cyan-500 to-emerald-500 text-white hover:from-cyan-400 hover:to-emerald-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/20"
             >
               {isSubmitting ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
