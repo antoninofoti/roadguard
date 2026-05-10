@@ -59,6 +59,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.Executors
 
@@ -86,6 +87,8 @@ class LivePotholeDetectionFragment : Fragment() {
     private lateinit var potholeDetectionHelper: PotholeDetectionHelper
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private var lastAnalysisTime = 0L
+    private var lastDebugFrameTime = 0L
+    private var smoothedFps = 0f
 
     // Fusion Engine
     private lateinit var fusionEngine: FusionEngine
@@ -110,6 +113,15 @@ class LivePotholeDetectionFragment : Fragment() {
     private var emptyDetectionFrames = 0
     private val emptyDetectionThreshold = 10
 
+    // Home test mode metrics (for stationary at-home verification)
+    private var homeTestModeEnabled = false
+    private var homeTestStartMs = 0L
+    private var homeTestFrameCount = 0
+    private var homeTestDetectionFrames = 0
+    private var homeTestInferenceMsTotal = 0L
+    private var homeTestConversionErrors = 0
+    private var homeTestLastLogMs = 0L
+
     private val requiredPermissions = arrayOf(
         Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -118,6 +130,7 @@ class LivePotholeDetectionFragment : Fragment() {
 
     // Last captured bitmap for report creation
     private var lastCapturedBitmap: Bitmap? = null
+    private var lastDetectionRecordId: Long? = null
 
     // Permission launcher
     private val requestPermissionLauncher = registerForActivityResult(
@@ -130,7 +143,7 @@ class LivePotholeDetectionFragment : Fragment() {
         } else {
             progressBar.visibility = View.GONE
             Toast.makeText(requireContext(), "Permissions required", Toast.LENGTH_LONG).show()
-            requireActivity().supportFragmentManager.popBackStack()
+            exitLiveScreen()
         }
     }
 
@@ -185,7 +198,7 @@ class LivePotholeDetectionFragment : Fragment() {
             textSize = 18f
             setPadding(40, 10, 40, 10)
             background = ContextCompat.getDrawable(context, R.drawable.button_back_rounded)
-            setOnClickListener { parentFragmentManager.popBackStack() }
+            setOnClickListener { exitLiveScreen() }
             val params = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
@@ -234,12 +247,34 @@ class LivePotholeDetectionFragment : Fragment() {
         }
         (view as FrameLayout).addView(btnRec)
 
+        // TEST button for at-home validation mode
+        val btnTest = Button(requireContext()).apply {
+            text = getString(R.string.action_test_off)
+            setTextColor(ContextCompat.getColor(context, android.R.color.white))
+            backgroundTintList = android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(context, android.R.color.darker_gray)
+            )
+            setOnClickListener {
+                toggleHomeTestMode(this)
+            }
+            val params = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            )
+            params.gravity = Gravity.TOP or Gravity.END
+            params.topMargin = 64
+            params.rightMargin = 220
+            layoutParams = params
+            elevation = 10f
+        }
+        (view as FrameLayout).addView(btnTest)
+
         // Handle hardware back button
         requireActivity().onBackPressedDispatcher.addCallback(
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
-                    parentFragmentManager.popBackStack()
+                    exitLiveScreen()
                 }
             }
         )
@@ -330,12 +365,14 @@ class LivePotholeDetectionFragment : Fragment() {
 
         // Record detection event for federated personalisation
         if (result.cvConfidence > 0.1f || result.sensorConfidence > 0.1f) {
-            federatedFusionManager.recordDetection(
-                cvConf    = result.cvConfidence,
-                imuConf   = result.sensorConfidence,
-                fusedScore = result.fusedScore,
-                predicted  = if (result.action != FusionAction.DISCARD) 1 else 0
-            )
+            CoroutineScope(Dispatchers.IO).launch {
+                lastDetectionRecordId = federatedFusionManager.recordDetection(
+                    cvConf    = result.cvConfidence,
+                    imuConf   = result.sensorConfidence,
+                    fusedScore = result.fusedScore,
+                    predicted  = if (result.action != FusionAction.DISCARD) 1 else 0
+                )
+            }
         }
 
         when (result.action) {
@@ -442,8 +479,8 @@ class LivePotholeDetectionFragment : Fragment() {
                             Toast.LENGTH_SHORT
                         ).show()
 
-                        // Task 1: Show Feedback SnackBar
-                        showFeedbackSnackbar()
+                        // Task 1: Show Feedback Toast
+                        showFeedbackToast(lastDetectionRecordId)
                     }
                     reportResult.onFailure { e ->
                         Toast.makeText(
@@ -461,17 +498,15 @@ class LivePotholeDetectionFragment : Fragment() {
 
     /**
      * Show a brief feedback Toast after report submission.
-     * Replaces the Snackbar approach to avoid Material Components dependency.
      */
-    private fun showFeedbackSnackbar() {
+    private fun showFeedbackToast(recordId: Long?) {
         if (!isAdded) return
         Toast.makeText(requireContext(), R.string.detection_feedback_message, Toast.LENGTH_LONG).show()
-        // Update latest detection record with positive ground truth for federated learning
-        CoroutineScope(Dispatchers.IO).launch {
-            val db = RoadGuardDatabase.getInstance(requireContext())
-            val lastRecord = db.detectionDao().getLastN(1).firstOrNull()
-            if (lastRecord != null) {
-                federatedFusionManager.submitFeedback(lastRecord.id, true)
+        
+        // Update detection record with positive ground truth for federated learning
+        recordId?.let { id ->
+            CoroutineScope(Dispatchers.IO).launch {
+                federatedFusionManager.submitFeedback(id, true)
             }
         }
     }
@@ -528,44 +563,187 @@ class LivePotholeDetectionFragment : Fragment() {
     }
 
     private fun processImageProxy(image: ImageProxy) {
-        val now = System.currentTimeMillis()
-        if (now - lastAnalysisTime < ANALYSIS_INTERVAL_MS) {
-            image.close()
-            return
-        }
-        lastAnalysisTime = now
+        try {
+            val now = System.currentTimeMillis()
+            if (now - lastAnalysisTime < ANALYSIS_INTERVAL_MS) {
+                return
+            }
+            lastAnalysisTime = now
 
-        val bitmap = imageProxyToBitmapSafe(image)
-        if (bitmap != null) {
-            val detections = potholeDetectionHelper.detectPotholes(bitmap)
-            Log.d(TAG, "CV detected ${detections.size} pothole(s)")
+            val fps = calculateSmoothedFps(now)
 
-            requireActivity().runOnUiThread {
-                overlayView.detections = detections
-                overlayView.visibility = View.VISIBLE
-                overlayView.invalidate()
+            val bitmap = imageProxyToBitmapSafe(image)
+            if (bitmap != null) {
+                val inferenceStart = System.nanoTime()
+                val detections = potholeDetectionHelper.detectPotholes(bitmap)
+                val inferenceMs = (System.nanoTime() - inferenceStart) / 1_000_000
+                updateHomeTestMetrics(fps, inferenceMs, detections.size)
+                Log.d(TAG, "CV detected ${detections.size} pothole(s)")
 
-                if (detections.isNotEmpty()) {
-                    emptyDetectionFrames = 0
-                    overlayView.showNoDetectionPlaceholder(false)
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    overlayView.updateDebugMetrics(fps, inferenceMs, detections.size)
+                    overlayView.detections = detections
+                    overlayView.visibility = View.VISIBLE
+                    overlayView.invalidate()
 
-                    // Feed best detection to FusionEngine
-                    val bestConfidence = detections.maxOf { it.confidence }
-                    handleCvDetection(bitmap, bestConfidence)
-                } else {
-                    emptyDetectionFrames++
-                    if (emptyDetectionFrames >= emptyDetectionThreshold) {
-                        overlayView.showNoDetectionPlaceholder(true)
+                    if (detections.isNotEmpty()) {
                         emptyDetectionFrames = 0
-                    } else {
                         overlayView.showNoDetectionPlaceholder(false)
+
+                        // Feed best detection to FusionEngine
+                        val bestConfidence = detections.maxOf { it.confidence }
+                        handleCvDetection(bitmap, bestConfidence)
+                    } else {
+                        emptyDetectionFrames++
+                        if (emptyDetectionFrames >= emptyDetectionThreshold) {
+                            overlayView.showNoDetectionPlaceholder(true)
+                            emptyDetectionFrames = 0
+                        } else {
+                            overlayView.showNoDetectionPlaceholder(false)
+                        }
                     }
                 }
+            } else {
+                Log.e(TAG, "Bitmap conversion failed")
+                updateHomeTestConversionError()
+                activity?.runOnUiThread {
+                    if (!isAdded) return@runOnUiThread
+                    overlayView.updateDebugMetrics(fps, 0L, 0)
+                }
             }
-        } else {
-            Log.e(TAG, "Bitmap conversion failed")
+        } catch (e: Exception) {
+            Log.e(TAG, "Analyzer pipeline error", e)
+        } finally {
+            image.close()
         }
-        image.close()
+    }
+
+    private fun calculateSmoothedFps(nowMs: Long): Float {
+        val last = lastDebugFrameTime
+        lastDebugFrameTime = nowMs
+        if (last == 0L) return 0f
+
+        val deltaMs = (nowMs - last).coerceAtLeast(1L)
+        val instantFps = 1000f / deltaMs
+        smoothedFps = if (smoothedFps == 0f) instantFps else (smoothedFps * 0.7f + instantFps * 0.3f)
+        return smoothedFps
+    }
+
+    private fun toggleHomeTestMode(button: Button) {
+        if (homeTestModeEnabled) {
+            stopHomeTestMode(button)
+        } else {
+            startHomeTestMode(button)
+        }
+    }
+
+    private fun startHomeTestMode(button: Button) {
+        homeTestModeEnabled = true
+        homeTestStartMs = System.currentTimeMillis()
+        homeTestFrameCount = 0
+        homeTestDetectionFrames = 0
+        homeTestInferenceMsTotal = 0L
+        homeTestConversionErrors = 0
+        homeTestLastLogMs = 0L
+
+        button.text = getString(R.string.action_test_on)
+        button.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark)
+        )
+        Toast.makeText(requireContext(), R.string.home_test_started, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun stopHomeTestMode(button: Button) {
+        homeTestModeEnabled = false
+        button.text = getString(R.string.action_test_off)
+        button.backgroundTintList = android.content.res.ColorStateList.valueOf(
+            ContextCompat.getColor(requireContext(), android.R.color.darker_gray)
+        )
+
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.home_test_summary_title))
+            .setMessage(buildHomeTestSummary())
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun updateHomeTestMetrics(fps: Float, inferenceMs: Long, detectionsCount: Int) {
+        if (!homeTestModeEnabled) return
+
+        homeTestFrameCount++
+        homeTestInferenceMsTotal += inferenceMs
+        if (detectionsCount > 0) {
+            homeTestDetectionFrames++
+        }
+
+        val now = System.currentTimeMillis()
+        if (now - homeTestLastLogMs >= 5000L) {
+            homeTestLastLogMs = now
+            Log.i(
+                TAG,
+                "HomeTest: frames=$homeTestFrameCount fps=${String.format(Locale.US, "%.2f", fps)} avgInf=${averageInferenceMs()}ms detections=$homeTestDetectionFrames convErr=$homeTestConversionErrors"
+            )
+        }
+    }
+
+    private fun updateHomeTestConversionError() {
+        if (!homeTestModeEnabled) return
+        homeTestConversionErrors++
+    }
+
+    private fun averageInferenceMs(): Long {
+        return if (homeTestFrameCount <= 0) 0L else homeTestInferenceMsTotal / homeTestFrameCount
+    }
+
+    private fun buildHomeTestSummary(): String {
+        val elapsedMs = (System.currentTimeMillis() - homeTestStartMs).coerceAtLeast(1L)
+        val elapsedSec = elapsedMs / 1000f
+        val avgFps = if (elapsedSec > 0f) homeTestFrameCount / elapsedSec else 0f
+        val avgInference = averageInferenceMs()
+        val detectionRate = if (homeTestFrameCount > 0) {
+            (homeTestDetectionFrames * 100f) / homeTestFrameCount
+        } else {
+            0f
+        }
+
+        val enoughFrames = homeTestFrameCount >= 15
+        val fpsHealthy = avgFps >= 1.5f
+        val inferenceHealthy = avgInference in 1..800
+        val conversionHealthy = homeTestConversionErrors <= 3
+        val verdict = if (enoughFrames && fpsHealthy && inferenceHealthy && conversionHealthy) {
+            getString(R.string.home_test_verdict_pass)
+        } else {
+            getString(R.string.home_test_verdict_attention)
+        }
+
+        return String.format(
+            Locale.US,
+            "%s\n\nDuration: %.1fs\nFrames analyzed: %d\nAvg FPS: %.2f\nAvg inference: %dms\nDetection frames: %d (%.1f%%)\nConversion errors: %d\n\nChecks:\n- Frames >= 15: %s\n- FPS >= 1.5: %s\n- Inference 1..800ms: %s\n- Conversion errors <= 3: %s",
+            verdict,
+            elapsedSec,
+            homeTestFrameCount,
+            avgFps,
+            avgInference,
+            homeTestDetectionFrames,
+            detectionRate,
+            homeTestConversionErrors,
+            yesNo(enoughFrames),
+            yesNo(fpsHealthy),
+            yesNo(inferenceHealthy),
+            yesNo(conversionHealthy)
+        )
+    }
+
+    private fun yesNo(value: Boolean): String {
+        return if (value) getString(android.R.string.yes) else getString(android.R.string.no)
+    }
+
+    private fun exitLiveScreen() {
+        val popped = parentFragmentManager.popBackStackImmediate()
+        if (!popped) {
+            requireActivity().finish()
+        }
     }
 
     // ========== Image Conversion ==========

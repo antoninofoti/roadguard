@@ -1,5 +1,7 @@
 package com.example.roadguard.model
 
+import com.google.firebase.firestore.IgnoreExtraProperties
+
 /**
  * User role constants.
  * Stored as strings in Firestore for flexibility.
@@ -10,6 +12,7 @@ object UserRole {
     const val ADMIN = "admin"         // System administrator
 }
 
+@IgnoreExtraProperties
 data class User(
     val uid: String = "",
     val email: String = "",

@@ -48,38 +48,36 @@ class FederatedFusionManager(
 
     /**
      * Record a detection event for future optimization.
+     * @return The ID of the inserted record.
      */
-    fun recordDetection(cvConf: Float, imuConf: Float, fusedScore: Float, predicted: Int) {
-        coroutineScope.launch(Dispatchers.IO) {
-            val record = DetectionRecord(
-                timestamp = System.currentTimeMillis(),
-                cvConf = cvConf,
-                imuConf = imuConf,
-                fusedScore = fusedScore,
-                predictedLabel = predicted,
-                groundTruthLabel = -1 // Unknown until feedback
-            )
-            val id = detectionDao.insert(record)
-            detectionDao.trimHistory(MAX_HISTORY_SIZE)
-            Log.d(TAG, "Recorded detection #$id for local optimization history.")
-        }
+    suspend fun recordDetection(cvConf: Float, imuConf: Float, fusedScore: Float, predicted: Int): Long = withContext(Dispatchers.IO) {
+        val record = DetectionRecord(
+            timestamp = System.currentTimeMillis(),
+            cvConf = cvConf,
+            imuConf = imuConf,
+            fusedScore = fusedScore,
+            predictedLabel = predicted,
+            groundTruthLabel = -1 // Unknown until feedback
+        )
+        val id = detectionDao.insert(record)
+        detectionDao.trimHistory(MAX_HISTORY_SIZE)
+        Log.d(TAG, "Recorded detection #$id for local optimization history.")
+        id
     }
 
     /**
      * Submit user feedback for a specific detection.
      */
-    fun submitFeedback(recordId: Long, isActuallyPothole: Boolean) {
-        coroutineScope.launch(Dispatchers.IO) {
-            val record = detectionDao.getById(recordId) ?: return@launch
-            val updatedRecord = record.copy(groundTruthLabel = if (isActuallyPothole) 1 else 0)
-            detectionDao.update(updatedRecord)
-            
-            val count = detectionDao.countLabeled()
-            Log.d(TAG, "Feedback received for record #$recordId. Total labeled: $count")
-            
-            if (count >= MIN_SAMPLES_FOR_OPTIMIZATION) {
-                tryOptimizeFusionWeights()
-            }
+    suspend fun submitFeedback(recordId: Long, isActuallyPothole: Boolean) = withContext(Dispatchers.IO) {
+        val record = detectionDao.getById(recordId) ?: return@withContext
+        val updatedRecord = record.copy(groundTruthLabel = if (isActuallyPothole) 1 else 0)
+        detectionDao.update(updatedRecord)
+        
+        val count = detectionDao.countLabeled()
+        Log.d(TAG, "Feedback received for record #$recordId. Total labeled: $count")
+        
+        if (count >= MIN_SAMPLES_FOR_OPTIMIZATION) {
+            tryOptimizeFusionWeights()
         }
     }
 

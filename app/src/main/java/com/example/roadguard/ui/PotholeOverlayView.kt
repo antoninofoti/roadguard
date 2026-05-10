@@ -12,7 +12,7 @@ import android.view.View
 import android.view.animation.LinearInterpolator
 import com.example.roadguard.R
 import com.example.roadguard.tflite.Detection
-import kotlin.math.min
+import java.util.Locale
 
 /**
  * HUD overlay rendered on top of the CameraX preview.
@@ -42,6 +42,11 @@ class PotholeOverlayView @JvmOverloads constructor(
     var cvScore: Float = 0f
     var imuScore: Float = 0f
     var fusedScore: Float = 0f
+
+    /** Live debug metrics for scan health visibility. */
+    var debugFps: Float = 0f
+    var debugInferenceMs: Long = 0L
+    var debugDetectionCount: Int = 0
 
     /**
      * Semantic state that controls the status-dot colour and label.
@@ -83,6 +88,16 @@ class PotholeOverlayView @JvmOverloads constructor(
         textSize = 28f
         isAntiAlias = true
     }
+    private val debugStripPaint = Paint().apply {
+        color = Color.argb(165, 0, 0, 0)
+        style = Paint.Style.FILL
+    }
+    private val debugTextPaint = Paint().apply {
+        color = Color.rgb(134, 239, 172) // green-300
+        textSize = 24f
+        typeface = Typeface.MONOSPACE
+        isAntiAlias = true
+    }
     private val dotPaint = Paint().apply {
         style = Paint.Style.FILL
         isAntiAlias = true
@@ -119,6 +134,14 @@ class PotholeOverlayView @JvmOverloads constructor(
         cvScore = cv; imuScore = imu; fusedScore = fused; detectionState = state
     }
 
+    /** Updates debug strip metrics and triggers redraw. */
+    fun updateDebugMetrics(fps: Float, inferenceMs: Long, detectionCount: Int) {
+        debugFps = fps
+        debugInferenceMs = inferenceMs
+        debugDetectionCount = detectionCount
+        invalidate()
+    }
+
     // ── Drawing ──────────────────────────────────────────────────────────────
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -146,6 +169,18 @@ class PotholeOverlayView @JvmOverloads constructor(
             pulsePaint.alpha = pulseAlpha
             canvas.drawCircle(w / 2f, h / 2f, pulseRadius, pulsePaint)
         }
+
+        // Top debug strip (scan health)
+        val debugStripH = 56f
+        canvas.drawRect(0f, 0f, w, debugStripH, debugStripPaint)
+        val debugText = String.format(
+            Locale.US,
+            "FPS %.1f   INF %dms   DET %d",
+            debugFps,
+            debugInferenceMs,
+            debugDetectionCount
+        )
+        canvas.drawText(debugText, 18f, 36f, debugTextPaint)
 
         // Bottom status strip
         val stripH = 72f

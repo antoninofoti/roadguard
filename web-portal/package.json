@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1 --port 4501 --strictPort",
     "build": "npm run build:validate-env && tsc -b && vite build",
     "build:validate-env": "bash scripts/validate-firebase-env.sh .env.production",
+    "seed:rome": "node scripts/seed-firestore-test-data.mjs --count 24",
     "lint": "eslint .",
     "preview": "vite preview --host 127.0.0.1 --port 4501 --strictPort",
     "test:e2e": "playwright test -c e2e/playwright.config.ts",

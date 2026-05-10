@@ -27,7 +27,12 @@ class SensorHelper(context: Context) : SensorEventListener {
     fun startListening() {
         maxAcceleration = 0f // Reset on start
         _severity.value = 0f
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI)
+        
+        if (accelerometer != null) {
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI)
+        } else {
+            android.util.Log.w("SensorHelper", "Accelerometer not available on this device.")
+        }
     }
 
     fun stopListening() {

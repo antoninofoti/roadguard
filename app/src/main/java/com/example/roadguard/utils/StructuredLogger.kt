@@ -177,6 +177,23 @@ object StructuredLogger {
     }
 
     /**
+     * Log a TLS configuration report (security auditing).
+     */
+    fun logTLSReport(
+        tlsVersion: String,
+        cipherSuite: String,
+        isPinningActive: Boolean,
+        isCompliant: Boolean
+    ) {
+        buildEntry("TLS_CONFIG_REPORT") {
+            put("tlsVersion", tlsVersion)
+            put("cipherSuite", cipherSuite)
+            put("isPinningActive", isPinningActive)
+            put("isCompliant", isCompliant)
+        }.emit(if (isCompliant) "INFO" else "WARN")
+    }
+
+    /**
      * Log a FusionContext update (for monitoring context-aware behavior).
      */
     fun logContextUpdate(

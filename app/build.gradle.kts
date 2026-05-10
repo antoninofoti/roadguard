@@ -21,6 +21,7 @@ val isCi = System.getenv("CI") == "true"
 android {
     namespace = "com.example.roadguard"
     compileSdk = 34
+    ndkVersion = "26.3.11579264"
 
     defaultConfig {
         applicationId = "com.example.roadguard"
@@ -31,6 +32,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY") ?: ""
+
+        // Firebase Emulator Defaults (Phase G.3)
+        buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "false")
+        buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"10.0.2.2\"")
+        buildConfigField("int", "FIRESTORE_EMULATOR_PORT", "8080")
+        buildConfigField("int", "AUTH_EMULATOR_PORT", "9099")
+        buildConfigField("int", "STORAGE_EMULATOR_PORT", "9199")
 
         // Phase G.4 — NDK/JNI: native Kalman filter in C
         ndk { abiFilters += listOf("arm64-v8a") }
@@ -63,6 +71,8 @@ android {
             isMinifyEnabled = false
             versionNameSuffix = "-debug"
             enableUnitTestCoverage = true
+            // Enable emulators by default in debug
+            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "true")
         }
         release {
             isMinifyEnabled = true
@@ -77,7 +87,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -152,7 +165,7 @@ dependencies {
     implementation("com.google.guava:guava:32.1.3-android")
 
     implementation("androidx.appcompat:appcompat:1.6.1")
-    
+
     // Room (Phase G.1)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)

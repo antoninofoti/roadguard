@@ -139,5 +139,5 @@ export function formatDetectionSource(source: DetectionSource): string {
     DUAL_CONFIRMED: "Dual Confirmed",
     MANUAL: "Manual Report",
   };
-  return labels[source];
+  return labels[source] ?? "Unknown Source";
 }

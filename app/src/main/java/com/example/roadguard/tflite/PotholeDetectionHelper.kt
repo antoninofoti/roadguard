@@ -3,19 +3,14 @@ package com.example.roadguard.tflite
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.RectF
-import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
-import org.opencv.core.CvType
-import org.opencv.core.Core
 import org.opencv.core.Mat
-import org.opencv.core.MatOfPoint
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
-import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.FileInputStream
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
@@ -23,19 +18,38 @@ import java.nio.channels.FileChannel
 class PotholeDetectionHelper(context: Context) {
 
     companion object {
-        private const val MODEL_NAME = "roadguard_model.tflite"
+        private const val MODEL_NAME = "yolov8n_pothole.tflite"
         private const val INPUT_IMAGE_WIDTH = 640
         private const val INPUT_IMAGE_HEIGHT = 640
 
         fun initOpenCV() {
-            OpenCVLoader.initLocal()
+            if (!org.opencv.android.OpenCVLoader.initDebug()) {
+                android.util.Log.e("PotholeDetection", "OpenCV initialization failed via initDebug()")
+            } else {
+                android.util.Log.d("PotholeDetection", "OpenCV initialized successfully")
+            }
         }
     }
 
     private var interpreter: Interpreter? = null
+    private var hasLoggedModelInfo = false
 
     init {
         interpreter = Interpreter(loadModelFile(context))
+        logModelTensorInfoIfNeeded()
+    }
+
+    private fun logModelTensorInfoIfNeeded() {
+        if (hasLoggedModelInfo) return
+
+        val tfLite = interpreter ?: return
+        val inputShape = tfLite.getInputTensor(0).shape().contentToString()
+        val outputShape = tfLite.getOutputTensor(0).shape().contentToString()
+        android.util.Log.i(
+            "PotholeDetection",
+            "TFLite model tensors: input=$inputShape output=$outputShape"
+        )
+        hasLoggedModelInfo = true
     }
 
     private fun loadModelFile(context: Context): MappedByteBuffer {
@@ -65,8 +79,18 @@ class PotholeDetectionHelper(context: Context) {
         var tensorImage = TensorImage.fromBitmap(processedBitmap)
         tensorImage = imageProcessor.process(tensorImage)
 
-        // YOLOv8 output: [1, 5, 8400] for 1 class (5: x, y, w, h, class_0_conf; 8400: boxes)
-        val outputBuffer = Array(1) { Array(5) { FloatArray(8400) } }
+        val outputShape = interpreter?.getOutputTensor(0)?.shape() ?: intArrayOf(1, 5, 8400)
+        if (outputShape.size != 3 || outputShape[0] != 1) {
+            android.util.Log.e("PotholeDetection", "Unexpected model output shape: ${outputShape.contentToString()}")
+            mat.release()
+            blurredMat.release()
+            return emptyList()
+        }
+
+        val isChannelFirst = outputShape[1] <= outputShape[2]
+        val channels = if (isChannelFirst) outputShape[1] else outputShape[2]
+        val boxes = if (isChannelFirst) outputShape[2] else outputShape[1]
+        val outputBuffer = Array(outputShape[0]) { Array(outputShape[1]) { FloatArray(outputShape[2]) } }
 
         interpreter?.run(tensorImage.buffer, outputBuffer)
 
@@ -75,14 +99,24 @@ class PotholeDetectionHelper(context: Context) {
         val originalHeight = bitmap.height.toFloat()
         val confThreshold = 0.3f
 
-        // Loop over 8400 boxes
-        for (i in 0 until 8400) {
-            val x = outputBuffer[0][0][i]
-            val y = outputBuffer[0][1][i]
-            val w = outputBuffer[0][2][i]
-            val h = outputBuffer[0][3][i]
-            val conf = outputBuffer[0][4][i]
-            // val cls = outputBuffer[0][5][i] (Unused for now)
+        // Supports common YOLO layouts: [1, 5, N], [1, 6, N], and [1, N, C].
+        for (i in 0 until boxes) {
+            val x = if (isChannelFirst) outputBuffer[0][0][i] else outputBuffer[0][i][0]
+            val y = if (isChannelFirst) outputBuffer[0][1][i] else outputBuffer[0][i][1]
+            val w = if (isChannelFirst) outputBuffer[0][2][i] else outputBuffer[0][i][2]
+            val h = if (isChannelFirst) outputBuffer[0][3][i] else outputBuffer[0][i][3]
+            val objectness = if (isChannelFirst) outputBuffer[0][4][i] else outputBuffer[0][i][4]
+            val classMax = if (channels > 5) {
+                var maxClass = 0f
+                for (c in 5 until channels) {
+                    val classConf = if (isChannelFirst) outputBuffer[0][c][i] else outputBuffer[0][i][c]
+                    if (classConf > maxClass) maxClass = classConf
+                }
+                maxClass
+            } else {
+                1f
+            }
+            val conf = objectness * classMax
             if (conf > confThreshold) {
                 val left = (x - w / 2) * (originalWidth / INPUT_IMAGE_WIDTH)
                 val top = (y - h / 2) * (originalHeight / INPUT_IMAGE_HEIGHT)
