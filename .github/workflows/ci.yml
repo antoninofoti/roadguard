@@ -115,6 +115,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Set up JDK 21 (for Firebase Emulators)
+        uses: actions/setup-java@v5
+        with:
+          java-version: "21"
+          distribution: "temurin"
       - name: Install web deps
         run: |
           cd web-portal
