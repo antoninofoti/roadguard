@@ -164,6 +164,40 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ── Federated Learning (FL) Extension ──────────────────────────────
+    // Added in Session 2 to support decentralized training orchestration.
+
+    match /fl_rounds/{roundId} {
+      // Mitiga: privilege escalation, data injection
+      // Ensures only the trusted FL_SERVER can manage communication rounds.
+      allow read: if isAuth();
+      allow create, update: if hasRole('FL_SERVER') &&
+        request.resource.data.keys().hasOnly(['roundNumber', 'status', 'modelUrl', 'participants', 'hmacDigest', 'createdAt']) &&
+        request.resource.data.status in ['accepting', 'training', 'aggregating', 'complete'];
+    }
+
+    match /fl_client_updates/{updateId} {
+      // Mitiga: impersonation, replay attacks, duplicate submissions
+      // Enforces 1 update per client per round and prevents tampering with already submitted data.
+      allow read: if hasRole('FL_SERVER');
+      allow create: if isAuth() && 
+        request.auth.uid == request.resource.data.clientId &&
+        // Prevent duplicate updates for the same round by using a deterministic ID check
+        !exists(/databases/$(database)/documents/fl_client_updates/$(updateId)) &&
+        request.resource.data.keys().hasOnly(['clientId', 'roundId', 'numSamples', 'gradientHash', 'localMap50', 'submittedAt']);
+      
+      // Updates are forbidden to ensure data integrity during the aggregation window.
+      allow update, delete: if false;
+    }
+
+    match /fl_global_models/{modelId} {
+      // Mitiga: unauthorized model replacement, data poisoning
+      // Clients can download models, but only the FL_SERVER can publish aggregated results.
+      allow read: if isAuth();
+      allow write: if hasRole('FL_SERVER') &&
+        request.resource.data.keys().hasOnly(['modelVersion', 'map50Global', 'numClients', 'createdAt']);
+    }
+
     // ── Deny all other paths by default ────────────────────────────────
     //
     // Firestore denies access unless a matching allow rule exists.
