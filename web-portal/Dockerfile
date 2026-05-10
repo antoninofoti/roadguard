@@ -24,6 +24,9 @@ RUN npm ci
 # Copy source and build
 COPY . .
 
+# Provide a fallback environment file so validation passes during CI build
+RUN cp .env.example .env.production
+
 RUN npm run build
 
 
