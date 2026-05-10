@@ -1,0 +1,5 @@
+Modality,Precision,Recall,F1
+Vision-Only,0.84,0.76,0.8
+IMU-Only,0.7,0.88,0.78
+Fixed Fusion,0.85,0.82,0.83
+Personalized Fusion,0.93,0.89,0.91

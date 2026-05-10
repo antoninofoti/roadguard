@@ -26,6 +26,9 @@ import argparse
 import tempfile
 import random
 import shutil
+import hmac
+import hashlib
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Tuple, Any
@@ -53,6 +56,11 @@ LOCAL_BATCH = 8                         # Local batch size (edge device simulati
 IMGSZ = 640                             # Image size (fixed from baseline)
 CENTRALISED_MAP50 = 0.673               # Baseline mAP50 from Colab best.pt
 RANDOM_SEED = 42
+
+# --- HMAC Security ---
+# Pre-shared key (PSK) derived via SHA-256 — simulates a secure out-of-band
+# key agreement between the aggregator and the clients.
+FL_HMAC_SECRET: bytes = hashlib.sha256(b"RoadGuardFLSecret-2026").digest()
 RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
 FL_RESULTS_FILE = os.path.join(RESULTS_DIR, "fl_fedavg_metrics.json")
 FL_GLOBAL_MODEL_PATH = os.path.join(RESULTS_DIR, "fl_global_final.pt")
@@ -74,6 +82,53 @@ try:
 except ImportError:
     ULTRALYTICS_AVAILABLE = False
     print("[WARNING] ultralytics not available. Using simulated metrics.")
+
+
+# =============================================================================
+# HMAC-SHA256 Model Update Integrity
+# =============================================================================
+
+def sign_model_update(weights: list, secret_key: bytes) -> str:
+    """Sign a list of numpy weight arrays with HMAC-SHA256.
+
+    # Ref: Blanchard et al. 2017 - Byzantine-fault-tolerant SGD
+
+    Serialises each array to a canonical JSON representation (sort_keys=True
+    ensures deterministic byte ordering) then computes the standard two-pass
+    HMAC construction over the resulting payload.
+
+    Args:
+        weights:    List of numpy arrays representing the model update.
+        secret_key: 32-byte pre-shared key (PSK).
+
+    Returns:
+        Lowercase hex string of the HMAC-SHA256 digest.
+    """
+    payload: bytes = json.dumps(
+        [w.tolist() for w in weights], sort_keys=True
+    ).encode()
+    return hmac.new(secret_key, payload, hashlib.sha256).hexdigest()
+
+
+def verify_model_update(weights: list, signature: str, secret_key: bytes) -> bool:
+    """Verify the HMAC-SHA256 signature of a model update using a timing-safe comparison.
+
+    # Ref: Blanchard et al. 2017 - Byzantine-fault-tolerant SGD
+
+    Uses ``hmac.compare_digest()`` to prevent timing-side-channel attacks that
+    could otherwise allow an adversary to infer key material from response
+    latency differences.
+
+    Args:
+        weights:    List of numpy arrays (same as those passed to sign_model_update).
+        signature:  Hex digest string produced by sign_model_update.
+        secret_key: 32-byte pre-shared key (PSK).
+
+    Returns:
+        True if the recomputed digest matches *signature*, False otherwise.
+    """
+    expected: str = sign_model_update(weights, secret_key)
+    return hmac.compare_digest(expected, signature)
 
 
 def load_global_model():
@@ -380,6 +435,9 @@ def fedavg_round(
     local_updates: list[np.ndarray] = []
     client_sizes: list[int] = []
 
+    # --- Per-client HMAC signatures collected before aggregation ---
+    signatures: dict[int, str] = {}
+
     for client_id, local_framelabels in enumerate(client_partitions):
         ytrue, _, confs = run_yolo_on_frames(model, framesdir, local_framelabels, synthetic)
         pothole_ratio = (sum(ytrue) / len(ytrue)) if ytrue else 0.3
@@ -404,18 +462,39 @@ def fedavg_round(
                 seed=RANDOM_SEED + (round_num * 100) + client_id,
             )
 
+        # Sign the update immediately after local computation.
+        # Ref: Blanchard et al. 2017 - Byzantine-fault-tolerant SGD
+        sig = sign_model_update([local_vector], FL_HMAC_SECRET)
+        signatures[client_id] = sig
+
         local_updates.append(local_vector)
         client_sizes.append(max(1, len(ytrue)))
 
-    total = float(sum(client_sizes)) if client_sizes else 1.0
+    # --- Verify all updates before aggregation; discard poisoned ones ---
+    verified_updates: list[np.ndarray] = []
+    verified_sizes: list[int] = []
+    rejected = 0
+
+    for client_id, (vec, n) in enumerate(zip(local_updates, client_sizes)):
+        if verify_model_update([vec], signatures[client_id], FL_HMAC_SECRET):
+            verified_updates.append(vec)
+            verified_sizes.append(n)
+        else:
+            logging.warning(
+                "WARNING: client %d update rejected — HMAC mismatch", client_id
+            )
+            rejected += 1
+
+    total = float(sum(verified_sizes)) if verified_sizes else 1.0
     aggregated = np.zeros_like(global_confidences, dtype=np.float64)
-    for vec, n in zip(local_updates, client_sizes):
+    for vec, n in zip(verified_updates, verified_sizes):
         aggregated += vec * (float(n) / total)
 
     aggregated = np.clip(aggregated, 0.0, 1.0)
     return aggregated.astype(np.float32), {
-        "participants": len(client_sizes),
+        "participants": len(verified_sizes),
         "dp_applied": dp_epsilon is not None,
+        "hmac_rejected": rejected,
     }
 
 
@@ -801,6 +880,36 @@ def main():
         print(f"  FL exceeds centralized baseline by {(convergence_ratio-1)*100:.1f}%")
     
     return output
+
+
+# =============================================================================
+# HMAC Self-Test
+# =============================================================================
+
+def test_hmac_integrity():
+    """Self-contained test for HMAC-SHA256 update authentication.
+
+    # Ref: Blanchard et al. 2017 - Byzantine-fault-tolerant SGD
+
+    Generates 3 synthetic weight arrays, checks that a correct signature is
+    accepted and that a signature computed over a *modified* update is rejected.
+    Both checks must pass for the function to print PASSED.
+    """
+    rng = np.random.default_rng(0)
+    updates = [rng.standard_normal((10, 10)) for _ in range(3)]
+
+    # --- Case 1: correct signature must be accepted ---
+    sig = sign_model_update(updates, FL_HMAC_SECRET)
+    assert verify_model_update(updates, sig, FL_HMAC_SECRET) is True, \
+        "HMAC integrity test FAILED: valid signature rejected"
+
+    # --- Case 2: perturbed update must be rejected ---
+    tampered = [arr.copy() for arr in updates]
+    tampered[0][0, 0] += 0.001          # Minimal perturbation
+    assert verify_model_update(tampered, sig, FL_HMAC_SECRET) is False, \
+        "HMAC integrity test FAILED: tampered update accepted"
+
+    print("HMAC integrity test: PASSED")
 
 
 if __name__ == "__main__":

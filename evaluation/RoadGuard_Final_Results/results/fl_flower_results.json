@@ -1,0 +1,158 @@
+{
+  "config": {
+    "n_clients": 5,
+    "n_rounds": 10,
+    "alpha_dirichlet": 0.5,
+    "decision_threshold": 0.35,
+    "dp_epsilon": null,
+    "tolerance": 0.05
+  },
+  "synthetic": true,
+  "results": [
+    {
+      "round": 1,
+      "global_f1": 0.1,
+      "avg_f1": 0.1,
+      "loss": 0.9,
+      "client_f1s": [
+        0.0,
+        0.0,
+        0.0,
+        0.5,
+        0.0
+      ],
+      "variance": 0.04
+    },
+    {
+      "round": 2,
+      "global_f1": 0.1212,
+      "avg_f1": 0.1212,
+      "loss": 0.8788,
+      "client_f1s": [
+        0.6061,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "variance": 0.0588
+    },
+    {
+      "round": 3,
+      "global_f1": 0.2413,
+      "avg_f1": 0.2413,
+      "loss": 0.7587,
+      "client_f1s": [
+        0.0,
+        0.5128,
+        0.6939,
+        0.0,
+        0.0
+      ],
+      "variance": 0.0906
+    },
+    {
+      "round": 4,
+      "global_f1": 0.2595,
+      "avg_f1": 0.2595,
+      "loss": 0.7405,
+      "client_f1s": [
+        0.8214,
+        0.0,
+        0.4762,
+        0.0,
+        0.0
+      ],
+      "variance": 0.1129
+    },
+    {
+      "round": 5,
+      "global_f1": 0.2532,
+      "avg_f1": 0.2532,
+      "loss": 0.7468,
+      "client_f1s": [
+        0.0,
+        0.0,
+        0.4444,
+        0.0,
+        0.8214
+      ],
+      "variance": 0.1104
+    },
+    {
+      "round": 6,
+      "global_f1": 0.2677,
+      "avg_f1": 0.2677,
+      "loss": 0.7323,
+      "client_f1s": [
+        0.0,
+        0.4762,
+        0.0,
+        0.8621,
+        0.0
+      ],
+      "variance": 0.1223
+    },
+    {
+      "round": 7,
+      "global_f1": 0.27,
+      "avg_f1": 0.27,
+      "loss": 0.73,
+      "client_f1s": [
+        0.0,
+        0.0,
+        0.0,
+        0.8621,
+        0.4878
+      ],
+      "variance": 0.1233
+    },
+    {
+      "round": 8,
+      "global_f1": 0.4959,
+      "avg_f1": 0.4959,
+      "loss": 0.5041,
+      "client_f1s": [
+        0.5333,
+        0.8621,
+        0.5128,
+        0.0,
+        0.5714
+      ],
+      "variance": 0.0775
+    },
+    {
+      "round": 9,
+      "global_f1": 0.5293,
+      "avg_f1": 0.5293,
+      "loss": 0.4707,
+      "client_f1s": [
+        0.625,
+        0.8621,
+        0.5882,
+        0.5714,
+        0.0
+      ],
+      "variance": 0.0811
+    },
+    {
+      "round": 10,
+      "global_f1": 0.5529,
+      "avg_f1": 0.5529,
+      "loss": 0.4471,
+      "client_f1s": [
+        0.0,
+        0.5714,
+        0.7059,
+        0.8814,
+        0.6061
+      ],
+      "variance": 0.088
+    }
+  ],
+  "validation": {
+    "manual_results_found": true,
+    "flower_vs_manual_match": true,
+    "fedrg_variance_decreased": false
+  }
+}

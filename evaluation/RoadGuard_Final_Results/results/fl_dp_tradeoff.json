@@ -1,0 +1,32 @@
+[
+  {
+    "epsilon": 0.1,
+    "sigma": 10.0,
+    "avg_mse": 0.268463
+  },
+  {
+    "epsilon": 0.5,
+    "sigma": 2.0,
+    "avg_mse": 0.214844
+  },
+  {
+    "epsilon": 1.0,
+    "sigma": 1.0,
+    "avg_mse": 0.19047
+  },
+  {
+    "epsilon": 2.0,
+    "sigma": 0.5,
+    "avg_mse": 0.127587
+  },
+  {
+    "epsilon": 5.0,
+    "sigma": 0.2,
+    "avg_mse": 0.034954
+  },
+  {
+    "epsilon": 10.0,
+    "sigma": 0.1,
+    "avg_mse": 0.01024
+  }
+]

@@ -1,0 +1,158 @@
+{
+  "method": "FedRoadGuard Personalized Fusion",
+  "description": "Per-client optimal fusion weights learned on local IMU+Vision shards",
+  "global_weights": {
+    "alpha": 0.55,
+    "beta": 0.3,
+    "gamma": 0.15
+  },
+  "clients": [
+    {
+      "client_id": 0,
+      "n_imu_samples": 0,
+      "n_vision_frames": 7511,
+      "imu_best_threshold": 9.0,
+      "vision_f1": 0.0,
+      "global_weights_f1": 0.0,
+      "personalized_weights": {
+        "alpha": 0.55,
+        "beta": 0.3,
+        "gamma": 0.15
+      },
+      "personalized_f1": 0.0,
+      "improvement_pp": 0.0,
+      "imu_score_per_window": [],
+      "best_imu_f1": 0.0
+    },
+    {
+      "client_id": 1,
+      "n_imu_samples": 0,
+      "n_vision_frames": 2181,
+      "imu_best_threshold": 9.0,
+      "vision_f1": 0.0,
+      "global_weights_f1": 0.0,
+      "personalized_weights": {
+        "alpha": 0.55,
+        "beta": 0.3,
+        "gamma": 0.15
+      },
+      "personalized_f1": 0.0,
+      "improvement_pp": 0.0,
+      "imu_score_per_window": [],
+      "best_imu_f1": 0.0
+    },
+    {
+      "client_id": 2,
+      "n_imu_samples": 0,
+      "n_vision_frames": 17072,
+      "imu_best_threshold": 9.0,
+      "vision_f1": 0.0,
+      "global_weights_f1": 0.0,
+      "personalized_weights": {
+        "alpha": 0.55,
+        "beta": 0.3,
+        "gamma": 0.15
+      },
+      "personalized_f1": 0.0,
+      "improvement_pp": 0.0,
+      "imu_score_per_window": [],
+      "best_imu_f1": 0.0
+    },
+    {
+      "client_id": 3,
+      "n_imu_samples": 0,
+      "n_vision_frames": 7551,
+      "imu_best_threshold": 9.0,
+      "vision_f1": 0.0,
+      "global_weights_f1": 0.0,
+      "personalized_weights": {
+        "alpha": 0.55,
+        "beta": 0.3,
+        "gamma": 0.15
+      },
+      "personalized_f1": 0.0,
+      "improvement_pp": 0.0,
+      "imu_score_per_window": [],
+      "best_imu_f1": 0.0
+    },
+    {
+      "client_id": 4,
+      "n_imu_samples": 0,
+      "n_vision_frames": 6264,
+      "imu_best_threshold": 9.0,
+      "vision_f1": 0.0,
+      "global_weights_f1": 0.0,
+      "personalized_weights": {
+        "alpha": 0.55,
+        "beta": 0.3,
+        "gamma": 0.15
+      },
+      "personalized_f1": 0.0,
+      "improvement_pp": 0.0,
+      "imu_score_per_window": [],
+      "best_imu_f1": 0.0
+    }
+  ],
+  "aggregate": {
+    "avg_global_f1": 0.0,
+    "avg_personalized_f1": 0.0,
+    "avg_improvement_pp": 0.0,
+    "n_clients_improved": 0,
+    "communication_cost": {
+      "k_clients": 5,
+      "fl_rounds": 10,
+      "model_size_mb": 6.2,
+      "uplink_per_round_mb": 12.4,
+      "downlink_per_round_mb": 31.0,
+      "uplink_total_mb": 124.0,
+      "downlink_total_mb": 310.0,
+      "total_mb": 434.0,
+      "total_gb": 0.4238
+    }
+  },
+  "dp_tradeoff": [
+    {
+      "epsilon": 0.1,
+      "sigma": 10.0,
+      "avg_mse": 0.268463
+    },
+    {
+      "epsilon": 0.5,
+      "sigma": 2.0,
+      "avg_mse": 0.214844
+    },
+    {
+      "epsilon": 1.0,
+      "sigma": 1.0,
+      "avg_mse": 0.19047
+    },
+    {
+      "epsilon": 2.0,
+      "sigma": 0.5,
+      "avg_mse": 0.127587
+    },
+    {
+      "epsilon": 5.0,
+      "sigma": 0.2,
+      "avg_mse": 0.034954
+    },
+    {
+      "epsilon": 10.0,
+      "sigma": 0.1,
+      "avg_mse": 0.01024
+    }
+  ],
+  "config": {
+    "k_clients": 5,
+    "alpha_sweep": [
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7
+    ],
+    "decision_threshold": 0.5,
+    "model_size_mb": 6.2,
+    "timestamp": "2026-05-10T13:56:08.797496"
+  }
+}

@@ -1,0 +1,4 @@
+Branch,Precision,Recall,F1-Score,Accuracy
+IMU-only,0.0,0.0,0.0,nan
+Vision-only,0.6825,0.7167,0.6992,0.815
+Late Fusion,0.7424,0.8167,0.7778,0.86
