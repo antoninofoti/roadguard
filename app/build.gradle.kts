@@ -21,6 +21,7 @@ val isCi = System.getenv("CI") == "true"
 android {
     namespace = "com.example.roadguard"
     compileSdk = 34
+    // buildToolsVersion managed automatically by AGP to prevent build warnings
     ndkVersion = "26.3.11579264"
 
     defaultConfig {
@@ -33,9 +34,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY") ?: ""
 
+        val emulatorHost = localProperties.getProperty("FIREBASE_EMULATOR_HOST") ?: "10.0.2.2"
+
         // Firebase Emulator Defaults (Phase G.3)
         buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "false")
-        buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"10.0.2.2\"")
+        buildConfigField("String", "FIREBASE_EMULATOR_HOST", "\"$emulatorHost\"")
         buildConfigField("int", "FIRESTORE_EMULATOR_PORT", "8080")
         buildConfigField("int", "AUTH_EMULATOR_PORT", "9099")
         buildConfigField("int", "STORAGE_EMULATOR_PORT", "9199")
@@ -71,8 +74,8 @@ android {
             isMinifyEnabled = false
             versionNameSuffix = "-debug"
             enableUnitTestCoverage = true
-            // Enable emulators by default in debug
-            buildConfigField("boolean", "USE_FIREBASE_EMULATORS", "true")
+            // USE_FIREBASE_EMULATORS defaults to false (set in defaultConfig above).
+            // To re-enable local emulators, set USE_FIREBASE_EMULATORS=true here.
         }
         release {
             isMinifyEnabled = true

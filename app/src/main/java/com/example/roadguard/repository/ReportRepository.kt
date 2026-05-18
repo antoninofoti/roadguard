@@ -147,6 +147,48 @@ class ReportRepository {
     }
 
     /**
+     * Create a report for DEMO purposes that bypasses Firebase Storage (due to Spark 402 errors)
+     * and only populates the Firestore database to show points on the Web Portal map.
+     */
+    suspend fun addFusionReportDemo(
+        location: GeoPoint,
+        severity: Float,
+        cvConfidence: Float,
+        sensorConfidence: Float,
+        fusedScore: Float,
+        damageType: String,
+        detectionSource: String
+    ): Result<String> {
+        return try {
+            val userId = auth.currentUser?.uid ?: "demo-user"
+            
+            // Bypass Storage and use a dummy image URL for the Web Portal
+            val imageUrl = "https://via.placeholder.com/640x480.png?text=Demo+Pothole"
+
+            val reportId = reportsCollection.document().id
+            val report = Report(
+                id = reportId,
+                userId = userId,
+                imageUrl = imageUrl,
+                location = location,
+                timestamp = Date(),
+                severity = severity,
+                status = ReportStatus.PENDING.name,
+                detectionSource = detectionSource,
+                cvConfidence = cvConfidence,
+                sensorConfidence = sensorConfidence,
+                fusedScore = fusedScore,
+                damageType = damageType
+            )
+
+            reportsCollection.document(reportId).set(report).await()
+            Result.success(reportId)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Update the status of a report (operator workflow).
      *
      * @param reportId ID of the report to update

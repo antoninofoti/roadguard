@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Production network security config.
+  By default, cleartext (plain HTTP) is NOT permitted.
+  The debug override in src/debug/res/xml/ permits cleartext to Firebase emulator hosts.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

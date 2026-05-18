@@ -52,7 +52,11 @@ import kotlinx.coroutines.Dispatchers
 @Composable
 fun MainScreen(viewModel: MainViewModel, navController: NavController) {
     val context = LocalContext.current
-    val potholeDetectionHelper = PotholeDetectionHelper(context)
+    // Remember the helper across recompositions and close it when the composable leaves.
+    val potholeDetectionHelper = remember(context) { PotholeDetectionHelper(context) }
+    DisposableEffect(potholeDetectionHelper) {
+        onDispose { potholeDetectionHelper.close() }
+    }
 
     // Observe severity in real-time
     val severity by viewModel.currentSeverity?.collectAsState(initial = 0f) ?: mutableStateOf(0f)

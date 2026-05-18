@@ -213,39 +213,7 @@ class LivePotholeDetectionFragment : Fragment() {
         // Status is now rendered entirely in PotholeOverlayView's HUD strip.
         // fusionStatusText is no longer needed as a separate TextView.
 
-        // REC button for logging
-        val btnRec = Button(requireContext()).apply {
-            text = getString(R.string.action_rec)
-            setTextColor(ContextCompat.getColor(context, android.R.color.white))
-            setBackgroundResource(R.drawable.button_rec_background) // We'll need to create this or use a color
-            setOnClickListener {
-                val isLogging = sensorService?.isLoggingEnabled ?: false
-                sensorService?.toggleLogging(!isLogging)
-                if (sensorService?.isLoggingEnabled == true) {
-                    text = getString(R.string.action_stop)
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(
-                        ContextCompat.getColor(context, android.R.color.holo_red_dark)
-                    )
-                    Toast.makeText(context, getString(R.string.logging_started, ""), Toast.LENGTH_SHORT).show()
-                } else {
-                    text = getString(R.string.action_rec)
-                    backgroundTintList = android.content.res.ColorStateList.valueOf(
-                        ContextCompat.getColor(context, R.color.purple_500)
-                    )
-                    Toast.makeText(context, getString(R.string.logging_stopped, 0), Toast.LENGTH_SHORT).show()
-                }
-            }
-            val params = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-            )
-            params.gravity = Gravity.TOP or Gravity.END
-            params.topMargin = 64
-            params.rightMargin = 32
-            layoutParams = params
-            elevation = 10f
-        }
-        (view as FrameLayout).addView(btnRec)
+        // REC button removed
 
         // TEST button for at-home validation mode
         val btnTest = Button(requireContext()).apply {
@@ -263,7 +231,7 @@ class LivePotholeDetectionFragment : Fragment() {
             )
             params.gravity = Gravity.TOP or Gravity.END
             params.topMargin = 64
-            params.rightMargin = 220
+            params.rightMargin = 32
             layoutParams = params
             elevation = 10f
         }
@@ -337,6 +305,14 @@ class LivePotholeDetectionFragment : Fragment() {
      */
     private fun handleSensorAnomaly(event: AnomalyEvent) {
         syncFusionContextFromService()
+        
+        // Foolproof Demo Mode: Se il TEST mode è attivo (per registrare il video),
+        // simuliamo che la telecamera abbia appena visto una buca all'85% di confidenza.
+        // In questo modo, lo scossone del sensore farà sempre scattare il prompt!
+        if (homeTestModeEnabled) {
+            fusionEngine.onCvDetection(0.85f, "pothole_mock")
+        }
+        
         val result = fusionEngine.onSensorAnomaly(event)
 
         requireActivity().runOnUiThread {
@@ -415,8 +391,14 @@ class LivePotholeDetectionFragment : Fragment() {
                 }, REPORT_COOLDOWN_MS)
             }
             .setNegativeButton(R.string.action_discard) { _, _ ->
-                Log.d(TAG, "PROMPT_USER dismissed")
+                Log.d(TAG, "PROMPT_USER dismissed — recording negative feedback")
                 overlayView.detectionState = PotholeOverlayView.DetectionState.SCANNING
+                // Record negative ground truth so the model learns from this false positive
+                lastDetectionRecordId?.let { id ->
+                    CoroutineScope(Dispatchers.IO).launch {
+                        federatedFusionManager.submitFeedback(id, false)
+                    }
+                }
             }
             .setOnDismissListener { activePromptDialog = null }
             .show()
@@ -456,17 +438,30 @@ class LivePotholeDetectionFragment : Fragment() {
                 }
                 val uri = Uri.fromFile(file)
 
-                // Use fusion-aware report creation
-                val reportResult = reportRepository.addFusionReport(
-                    imageUri = uri,
-                    location = location,
-                    severity = result.fusedScore,
-                    cvConfidence = result.cvConfidence,
-                    sensorConfidence = result.sensorConfidence,
-                    fusedScore = result.fusedScore,
-                    damageType = result.damageType,
-                    detectionSource = result.detectionSource
-                )
+                // Select whether to perform a REAL upload (which will fail due to Firebase Spark 402 error)
+                // or call the DEMO method which bypasses Cloud Storage but writes to Firestore to populate the Web Portal.
+                val reportResult = if (homeTestModeEnabled) {
+                    reportRepository.addFusionReportDemo(
+                        location = location,
+                        severity = result.fusedScore,
+                        cvConfidence = result.cvConfidence,
+                        sensorConfidence = result.sensorConfidence,
+                        fusedScore = result.fusedScore,
+                        damageType = result.damageType,
+                        detectionSource = result.detectionSource
+                    )
+                } else {
+                    reportRepository.addFusionReport(
+                        imageUri = uri,
+                        location = location,
+                        severity = result.fusedScore,
+                        cvConfidence = result.cvConfidence,
+                        sensorConfidence = result.sensorConfidence,
+                        fusedScore = result.fusedScore,
+                        damageType = result.damageType,
+                        detectionSource = result.detectionSource
+                    )
+                }
 
                 CoroutineScope(Dispatchers.Main).launch {
                     reportResult.onSuccess { reportId ->
@@ -497,18 +492,28 @@ class LivePotholeDetectionFragment : Fragment() {
     }
 
     /**
-     * Show a brief feedback Toast after report submission.
+     * Show a feedback confirmation after report submission.
+     * Uses a 2-button dialog to collect accurate ground truth (positive OR negative).
      */
     private fun showFeedbackToast(recordId: Long?) {
         if (!isAdded) return
-        Toast.makeText(requireContext(), R.string.detection_feedback_message, Toast.LENGTH_LONG).show()
-        
-        // Update detection record with positive ground truth for federated learning
-        recordId?.let { id ->
-            CoroutineScope(Dispatchers.IO).launch {
-                federatedFusionManager.submitFeedback(id, true)
+        recordId ?: return
+
+        val count = recordId.toInt() // proxy for display; real count comes from DB
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.detection_feedback_message))
+            .setMessage("Was this a real pothole? Your answer trains the local model.")
+            .setPositiveButton("✅ Yes, real") { _, _ ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    federatedFusionManager.submitFeedback(recordId, true)
+                }
             }
-        }
+            .setNegativeButton("❌ No, false alarm") { _, _ ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    federatedFusionManager.submitFeedback(recordId, false)
+                }
+            }
+            .show()
     }
 
     private fun syncFusionContextFromService() {
@@ -819,6 +824,7 @@ class LivePotholeDetectionFragment : Fragment() {
         activePromptDialog?.dismiss()
         activePromptDialog = null
         cameraExecutor.shutdown()
+        potholeDetectionHelper.close()
         if (serviceBound) {
             sensorService?.setOnAnomalyDetectedListener(null)
             requireContext().unbindService(serviceConnection)

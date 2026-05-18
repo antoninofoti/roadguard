@@ -62,7 +62,7 @@ export function ReportDetail({ report, onClose }: ReportDetailProps) {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed right-0 top-16 bottom-0 w-96 bg-[var(--color-surface-800)] border-l border-[var(--color-glass-border)] z-30 overflow-y-auto shadow-2xl"
+          className="fixed right-0 top-16 bottom-0 w-96 bg-[var(--color-surface-800)] border-l border-[var(--color-glass-border)] z-[1001] overflow-y-auto shadow-2xl"
         >
           {/* Header */}
           <div className="sticky top-0 bg-[var(--color-surface-800)]/95 backdrop-blur-sm border-b border-[var(--color-glass-border)] p-4 flex items-center justify-between z-10">

@@ -101,7 +101,7 @@ def update_report():
     bars[4].set_alpha(1.0)
     bars[4].set_edgecolor("white")
     bars[4].set_linewidth(2)
-    ax.text(4, f1_fedrg_personal + 0.02, "★ BEST", ha='center', color=COLOR_FUSION, fontweight='bold', fontsize=12)
+    ax.text(4, f1_fedrg_personal + 0.04, "★ BEST", ha='center', color=COLOR_FUSION, fontweight='bold', fontsize=12)
 
     # Value labels
     for bar in bars:

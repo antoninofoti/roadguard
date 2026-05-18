@@ -92,7 +92,10 @@ fun FLStatusCard(
             Spacer(modifier = Modifier.height(12.dp))
 
             MetricRow(stringResource(R.string.local_f1_label), "%.4f".format(localF1))
-            MetricRow(stringResource(R.string.feedback_samples_label), "$labeledCount")
+            MetricRow(
+                stringResource(R.string.feedback_samples_label),
+                "$labeledCount / ${com.example.roadguard.ml.FederatedFusionManager.MIN_SAMPLES_FOR_OPTIMIZATION}"
+            )
             
             val roundNum = currentRound?.getLong("round_number") ?: 0
             val participantCount = currentRound?.getLong("participant_count") ?: 0

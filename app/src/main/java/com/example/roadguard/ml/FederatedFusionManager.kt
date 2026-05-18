@@ -32,7 +32,7 @@ class FederatedFusionManager(
     companion object {
         private const val TAG = "FedFusionManager"
         const val MIN_SAMPLES_FOR_OPTIMIZATION = 20
-        const val MAX_HISTORY_SIZE = 100
+        const val MAX_HISTORY_SIZE = 10000
         const val PREFS_NAME = "roadguard_fusion_prefs"
         const val PREF_ALPHA = "local_alpha"
         const val PREF_BETA = "local_beta"

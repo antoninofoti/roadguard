@@ -16,6 +16,7 @@ println "OpenCV: " + openCVersionName + " " + project.buildscript.sourceFile
 android {
     namespace = 'org.opencv'
     compileSdk 34
+    // buildToolsVersion managed automatically by AGP to prevent build warnings
     ndkVersion = "26.3.11579264"
 
     defaultConfig {

@@ -68,3 +68,7 @@ web-portal/.env.production
 *.md
 !README.md
 !**/README.md
+presentation.snm
+presentation.nav
+fix_presentation_graphics.ipynb
+web-portal/scripts/seed-prod-roma.mjs

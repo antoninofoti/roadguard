@@ -57,39 +57,32 @@ export function LoginPage() {
           <p className="text-sm text-slate-400 mb-4">
             This portal is restricted to operator and administrator access.
             Provide your email and password to authenticate. The frontend
-            verifies credentials against the backend (Firebase Auth emulator)
+            verifies credentials against the production cloud backend (Google Cloud Firebase)
             and receives a session token which grants access to protected
             features such as the dashboard, reports, and administrative actions.
           </p>
 
           <div className="mb-6 bg-surface-800 p-3 rounded-md border border-glass-border text-sm text-slate-300">
             <div className="font-semibold text-white mb-2">
-              Test credentials
+              Operator Credentials (Cloud)
             </div>
             <div className="space-y-1">
               <div>
-                Admin (test):{" "}
-                <span className="font-medium">admin@example.com</span> /{" "}
-                <span className="font-medium">Password123!</span>
-              </div>
-              <div>
-                Operator (test):{" "}
-                <span className="font-medium">
-                  operator.release@roadguard.local
-                </span>{" "}
-                / <span className="font-medium">RoadGuard!2026</span>
-              </div>
-              <div>
-                User (test):{" "}
-                <span className="font-medium">user@example.com</span> /{" "}
-                <span className="font-medium">Password123!</span>
+                Admin/Operator:{" "}
+                <span className="font-medium">admin.demo@roadguard.local</span> /{" "}
+                <span className="font-medium">RoadGuardDemo2026!</span>
               </div>
             </div>
             <div className="text-xs text-slate-500 mt-2">
-              If the Auth emulator is not running, start it and use the scripts
-              in
-              <span className="ml-1 font-medium">web-portal/scripts</span> to
-              provision the test accounts.
+              Access is managed through Role-Based Access Control (RBAC). 
+              Only registered municipal accounts are authorized to access the dashboard.
+            </div>
+            <div className="text-xs text-amber-400/80 mt-2 border-t border-glass-border/20 pt-2 flex gap-1.5">
+              <span className="font-semibold shrink-0">⚠️ Academic Sandbox Notice:</span>
+              <span>
+                These test credentials are temporarily exposed in the UI exclusively for thesis evaluation and review. 
+                In commercial/production builds, this helper utility is strictly compiled out, and secure out-of-band credential provisioning is enforced.
+              </span>
             </div>
           </div>
 

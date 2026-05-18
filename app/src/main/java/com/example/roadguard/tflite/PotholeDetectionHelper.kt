@@ -39,6 +39,16 @@ class PotholeDetectionHelper(context: Context) {
         logModelTensorInfoIfNeeded()
     }
 
+    /**
+     * Release the TFLite Interpreter and its native XNNPACK delegate.
+     * Must be called when the owning component (Fragment/Activity) is destroyed.
+     */
+    fun close() {
+        interpreter?.close()
+        interpreter = null
+        hasLoggedModelInfo = false
+    }
+
     private fun logModelTensorInfoIfNeeded() {
         if (hasLoggedModelInfo) return
 
@@ -53,12 +63,14 @@ class PotholeDetectionHelper(context: Context) {
     }
 
     private fun loadModelFile(context: Context): MappedByteBuffer {
-        val fileDescriptor = context.assets.openFd(MODEL_NAME)
-        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
-        val fileChannel = inputStream.channel
-        val startOffset = fileDescriptor.startOffset
-        val declaredLength = fileDescriptor.declaredLength
-        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+        context.assets.openFd(MODEL_NAME).use { fileDescriptor ->
+            FileInputStream(fileDescriptor.fileDescriptor).use { inputStream ->
+                val fileChannel = inputStream.channel
+                val startOffset = fileDescriptor.startOffset
+                val declaredLength = fileDescriptor.declaredLength
+                return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
+            }
+        }
     }
 
     fun detectPotholes(bitmap: Bitmap): List<Detection> {
@@ -97,7 +109,8 @@ class PotholeDetectionHelper(context: Context) {
         val detections = mutableListOf<Detection>()
         val originalWidth = bitmap.width.toFloat()
         val originalHeight = bitmap.height.toFloat()
-        val confThreshold = 0.3f
+        // Lowered threshold to 0.10f for monitor/screen-recording demos
+        val confThreshold = 0.10f
 
         // Supports common YOLO layouts: [1, 5, N], [1, 6, N], and [1, N, C].
         for (i in 0 until boxes) {
